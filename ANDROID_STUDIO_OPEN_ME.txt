@@ -1,0 +1,46 @@
+DIGITAL DOCUFOLIO — ANDROID STUDIO READY
+
+OPEN THIS PROJECT IN ANDROID STUDIO
+
+1. Extract this ZIP completely.
+2. Start Android Studio.
+3. Choose File > Open.
+4. Select the folder named: android
+   (NOT the ZIP file and NOT the parent project folder.)
+5. Allow Android Studio/Gradle to sync and download required dependencies.
+6. Use the bundled JDK / JDK 21 when Android Studio asks for a Gradle JDK.
+7. Run the 'app' configuration on an emulator or USB-connected Android device.
+
+DEBUG APK
+The Gradle project is configured to produce:
+android/app/build/outputs/apk/debug/app-debug.apk
+
+GOOGLE SIGN-IN
+The native Google sign-in plugin is included. Firebase Authentication uses the
+Google ID token returned by Android Credential Manager.
+
+Before testing Google sign-in, make sure the Google Cloud/Firebase project has
+an Android OAuth client for:
+  Package: com.docufolio.app
+and that the SHA-1 certificate for the APK you are testing is registered.
+
+For a debug build, Android Studio > Gradle > app > Tasks > android > signingReport
+shows the debug SHA-1.
+
+AI / GEMINI
+The Android APK does NOT contain the Gemini server secret. AI calls go to the
+Cloud Run URL configured in api.ts. Keep GEMINI_API_KEY in Cloud Run Secret
+Manager only.
+
+IMPORTANT
+Do not put a real Gemini API key in the Android project, .env files, or GitHub.
+
+SOURCE REBUILD
+If you edit TypeScript/React source, run from the project root:
+  npm ci
+  npm run build
+  npx cap sync android
+Then open/sync the android folder in Android Studio.
+
+The ZIP includes already-generated Android web assets, so Android Studio can
+open the native project without requiring Node.js for the first native sync.

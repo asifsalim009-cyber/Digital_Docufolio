@@ -1,0 +1,35 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.docufolio.app',
+  appName: 'Digital DocuFolio',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+    cleartext: true
+  },
+  android: {
+    allowMixedContent: true
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: "#060d1a",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: true,
+      androidSpinnerStyle: "large",
+      iosSpinnerStyle: "small",
+      spinnerColor: "#0ea5e9",
+      splashFullScreen: true,
+      splashImmersive: true
+    },
+    StatusBar: {
+      style: "DARK",
+      backgroundColor: "#060d1a"
+    }
+  }
+};
+
+export default config;

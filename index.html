@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#060d1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <title>Digital Docufolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@300..700&family=Outfit:wght@300..800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              serif: ['"Inter"', 'sans-serif'],
+              display: ['"Outfit"', 'sans-serif'],
+              handwriting: ['"Caveat"', 'cursive'],
+              sans: ['"Outfit"', '"Inter"', 'sans-serif'],
+            },
+            colors: {
+              // Brand Digital Vault Palette (matching official logo)
+              brand: {
+                950: '#060d1a', // Deep Obsidian Vault
+                900: '#0b162c', // Midnight Navy Header / Sidebar
+                850: '#0f203d',
+                800: '#142d54', // Rich Navy
+                700: '#1d427b',
+                600: '#0284c7', // Primary Electric Blue (Logo core)
+                500: '#0ea5e9', // Sky Blue
+                400: '#38bdf8', // Cyan Glow
+                300: '#7dd3fc',
+                200: '#bae6fd',
+                100: '#e0f2fe', // Ice Blue Tint
+                50:  '#f0f9ff',
+              },
+              // Backward compatibility aliases mapped to new brand palette
+              forest: {
+                950: '#060d1a',
+                900: '#0b162c', // Primary deep navy text & headers
+                800: '#142d54',
+                700: '#1d427b',
+                600: '#0284c7', // Primary Brand Blue
+                500: '#0ea5e9',
+                400: '#38bdf8',
+                300: '#7dd3fc',
+                200: '#bae6fd',
+                100: '#e0f2fe',
+                50:  '#f0f9ff',
+              },
+              // Accent Gold/Yellow/Orange mapped from Reminders & Bell highlights in logo
+              gold: {
+                700: '#c2410c',
+                600: '#0284c7', // Default action button brand blue
+                500: '#0ea5e9', // Primary brand action
+                400: '#38bdf8',
+                100: '#e0f2fe',
+              },
+              // Neutral Slate / High-clarity workspace canvas
+              sand: {
+                900: '#0f172a', // Deep slate text
+                800: '#1e293b',
+                300: '#cbd5e1',
+                200: '#e2e8f0', // Crisp border outlines
+                100: '#f1f5f9', // Clean card surface
+                50: '#f8fafc',  // Modern crisp app canvas
+              },
+              // Badges from Logo
+              badge: {
+                wallet: '#0284c7', // Blue - Document Wallet
+                reminders: '#ef4444', // Red/Coral - Reminders & Alarms
+                cloud: '#10b981', // Emerald - Cloud Sync
+                security: '#8b5cf6', // Purple - Secure Storage & View Once
+                devices: '#f59e0b', // Amber/Orange - Multi-platform
+                calendar: '#06b6d4', // Cyan - Calendar
+              }
+            },
+            backgroundImage: {
+              'modern-mesh': "radial-gradient(at 0% 0%, hsla(215, 80%, 15%, 1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(200, 90%, 25%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(225, 75%, 20%, 1) 0, transparent 50%)",
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Modern Minimal Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #94a3b8; 
+        border-radius: 99px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b; 
+      }
+      
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+      }
+      
+      .glass-panel-dark {
+        background: rgba(11, 22, 44, 0.96); /* Brand 900 */
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-sand-50 text-forest-900 antialiased h-[100dvh] overflow-hidden selection:bg-gold-500 selection:text-white font-sans">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

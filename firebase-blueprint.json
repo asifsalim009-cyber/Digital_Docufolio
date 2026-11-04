@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profiles and settings.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "plan": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "nickName": { "type": "string" },
+        "age": { "type": "number" },
+        "weight": { "type": "string" },
+        "height": { "type": "string" },
+        "bloodType": { "type": "string" },
+        "bio": { "type": "string" },
+        "profileImage": { "type": "string" },
+        "socialHandles": { "type": "object" }
+      },
+      "required": ["email", "fullName"]
+    },
+    "StoredDocument": {
+      "title": "StoredDocument",
+      "description": "User's stored documents.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "relation": { "type": "string" },
+        "dateUploaded": { "type": "string" },
+        "documentNumber": { "type": "string" },
+        "customName": { "type": "string" },
+        "customType": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "reminderConfig": { "type": "object" },
+        "tags": { "type": "array" },
+        "files": { "type": "array" }
+      },
+      "required": ["id", "type", "ownerName", "relation", "files"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "User's journal entries.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" }
+      },
+      "required": ["id", "date", "content"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "User's tasks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "time": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "title", "completed", "date"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "User's notifications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "title", "message", "type", "date", "read"]
+    },
+    "ViewOnceShare": {
+      "title": "ViewOnceShare",
+      "description": "Secure single-use or normal document share token and state.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "token": { "type": "string" },
+        "documentId": { "type": "string" },
+        "documentTitle": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "shareType": { "type": "string", "enum": ["view_once", "normal"] },
+        "status": { "type": "string", "enum": ["available", "viewing", "consumed", "expired", "revoked"] },
+        "createdAt": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "viewedAt": { "type": "string" },
+        "consumedAt": { "type": "string" },
+        "sessionStartedAt": { "type": "string" },
+        "currentSessionKey": { "type": "string" },
+        "recipientEmail": { "type": "string" },
+        "recipientWatermark": { "type": "string" },
+        "payload": { "type": "object" }
+      },
+      "required": ["token", "documentId", "ownerUid", "shareType", "status", "createdAt", "expiresAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and settings."
+    },
+    "/users/{userId}/documents/{documentId}": {
+      "schema": "StoredDocument",
+      "description": "User's stored documents."
+    },
+    "/users/{userId}/journal/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "User's journal entries."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User's tasks."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "AppNotification",
+      "description": "User's notifications."
+    },
+    "/viewOnceShares/{shareId}": {
+      "schema": "ViewOnceShare",
+      "description": "Secure View Once and normal document share records."
+    }
+  }
+}

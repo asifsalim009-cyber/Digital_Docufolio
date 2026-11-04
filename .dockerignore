@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log*
+dist
+.git
+.gitignore
+.idea
+.vscode
+android/.gradle
+android/app/build
+android/build
+ios/App/Pods
+*.keystore
+*.jks
+.env
+.env.*
+!.env.example

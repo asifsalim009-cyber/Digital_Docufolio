@@ -1,0 +1,6 @@
+Digital DocuFolio Android startup fixes applied to this package:
+- Guarded all browser Notification API calls for Android WebView compatibility.
+- Disabled PWA service-worker registration in the bundled native Android build.
+- Removed the Android PWA manifest link from the native bundled index.html.
+- Preserved native GoogleAuthPlugin + Firebase credential login.
+- Preserved Gemini/AI dependencies and source.

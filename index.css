@@ -1,0 +1,4 @@
+/* Base styles for Digital Docufolio */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

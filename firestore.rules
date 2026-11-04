@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User private profile and personal subcollections
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Secure Document Sharing (View Once and Normal Shares)
+    match /viewOnceShares/{shareId} {
+      // Senders can create shares for their own documents
+      allow create: if request.auth != null 
+                    && request.resource.data.ownerUid == request.auth.uid;
+      
+      // Reading the share record
+      allow read: if true;
+      
+      // State transition updates:
+      // 1. Owner can revoke or manage the share
+      // 2. Recipient can transition status (available -> viewing, viewing -> consumed, available -> consumed)
+      allow update: if (
+        (request.auth != null && resource.data.ownerUid == request.auth.uid) ||
+        (
+          // Recipient state transitions
+          (resource.data.status == 'available' && request.resource.data.status == 'viewing') ||
+          (resource.data.status == 'viewing' && request.resource.data.status == 'consumed') ||
+          (resource.data.status == 'available' && request.resource.data.status == 'consumed')
+        )
+      );
+
+      // Only owner can delete the share record
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}

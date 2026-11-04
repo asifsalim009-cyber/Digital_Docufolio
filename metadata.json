@@ -1,0 +1,13 @@
+{
+  "name": "Digital Docufolio",
+  "description": "A personal virtual wallet and journal with a forest-themed book aesthetic. Manage personal and family documents, track journal entries, set tasks, and securely share documents with View Once protection.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "publickey-credentials-create",
+    "publickey-credentials-get"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
