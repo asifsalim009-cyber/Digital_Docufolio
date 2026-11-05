@@ -1541,35 +1541,9 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
                                <div className="flex gap-2">
                                    <button 
                                      onClick={() => setNewDoc(prev => ({ ...prev, relation: 'SELF', ownerName: 'Self' }))}
-                                     className={`flex-1 py-2 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation === 'SELF' ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300'}`}
+                                     className="w-full py-2 rounded-lg text-[11px] sm:text-sm font-bold border bg-forest-900 text-white border-forest-900"
                                    >
                                        Myself
-                                   </button>
-                                   <button 
-                                     onClick={() => {
-                                         if (!isProOrHigher) {
-                                             onNavigateToPlans();
-                                             return;
-                                         }
-                                         setNewDoc(prev => ({ ...prev, relation: RelationType.OTHER, ownerName: '' }));
-                                     }}
-                                     className={`flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation !== 'SELF' && newDoc.relation !== RelationType.BUSINESS ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300 hover:bg-sand-50'}`}
-                                   >
-                                       Someone Else
-                                       {!isProOrHigher && <Lock size={12} className="text-sand-400" />}
-                                   </button>
-                                   <button 
-                                     onClick={() => {
-                                         if (!isBusinessPlan) {
-                                             onNavigateToPlans();
-                                             return;
-                                         }
-                                         setNewDoc(prev => ({ ...prev, relation: RelationType.BUSINESS, ownerName: '' }))
-                                     }}
-                                     className={`flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation === RelationType.BUSINESS ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300 hover:bg-sand-50'}`}
-                                   >
-                                       Business
-                                       {!isBusinessPlan && <Lock size={12} className="text-sand-400" />}
                                    </button>
                                </div>
                            </div>
