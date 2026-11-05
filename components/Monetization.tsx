@@ -63,7 +63,23 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success'>('idle');
   const [showComparison, setShowComparison] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showWindowsRedirectModal, setShowWindowsRedirectModal] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  const handleOpenInBrowser = () => {
+    window.open('https://aeroscankenya.co.ke/docufolio', '_blank');
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText('https://aeroscankenya.co.ke/docufolio');
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
 
   // Cloud & Mobile Plans
   const cloudPlans: PlanItem[] = [
@@ -234,6 +250,11 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
     if (plan.id === currentPlan) return;
     if (plan.id === SubscriptionPlan.BASIC) return;
 
+    if (plan.id === SubscriptionPlan.WINDOWS_INDIVIDUAL) {
+      setShowWindowsRedirectModal(true);
+      return;
+    }
+
     if (plan.id === SubscriptionPlan.BUSINESS || plan.id === SubscriptionPlan.WINDOWS_BUSINESS) {
       setShowUnderDevModal(true);
       return;
@@ -382,7 +403,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
               <button
-                onClick={() => setShowDownloadModal(true)}
+                onClick={() => setShowWindowsRedirectModal(true)}
                 className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white hover:bg-blue-50 text-blue-900 rounded-2xl font-bold text-sm shadow-lg transition-all transform hover:-translate-y-0.5"
               >
                 <Download size={18} className="text-blue-600" />
@@ -894,6 +915,54 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                 className="w-full py-3 mt-4 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-xl font-bold transition-all text-sm"
               >
                 Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Windows Redirect Modal */}
+      {showWindowsRedirectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative border border-blue-200 p-6 text-forest-900 space-y-4">
+            <button
+              onClick={() => setShowWindowsRedirectModal(false)}
+              className="absolute top-4 right-4 text-forest-400 hover:text-forest-900 p-2 rounded-full hover:bg-sand-100 transition-all z-10"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center pt-2">
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 mx-auto mb-3 flex items-center justify-center shadow-lg shadow-blue-600/25 text-white">
+                <Monitor size={28} />
+              </div>
+              <h3 className="text-xl font-display font-bold text-forest-900">Windows Desktop Portal</h3>
+              <p className="text-xs text-forest-500 mt-1 max-w-xs mx-auto">
+                Get the official Windows app and updates at <strong className="text-forest-800">aeroscankenya.co.ke/docufolio</strong>
+              </p>
+            </div>
+
+            {copySuccess && (
+              <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold text-center border border-emerald-200 animate-fadeIn">
+                ✓ Link copied to clipboard successfully!
+              </div>
+            )}
+
+            <div className="space-y-3 pt-2">
+              <button
+                onClick={handleOpenInBrowser}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-md shadow-blue-600/25 transition-all text-sm flex items-center justify-center gap-2"
+              >
+                <ArrowRight size={16} />
+                <span>Open Address in Browser</span>
+              </button>
+
+              <button
+                onClick={handleCopyLink}
+                className="w-full py-3.5 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-2xl font-bold transition-all text-sm flex items-center justify-center gap-2 border border-sand-200"
+              >
+                <FileText size={16} />
+                <span>Copy Link</span>
               </button>
             </div>
           </div>
