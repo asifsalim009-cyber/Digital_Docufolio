@@ -73,8 +73,8 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   const handleOpenMaximized = (tab: Tab) => {
     setMaximizedTab(tab);
     setActiveTab(tab);
-    setTempBudgets(budgets);
-    setTempRecurring(recurringExpenses);
+    setTempBudgets(budgets || []);
+    setTempRecurring(recurringExpenses || []);
     setHasChanges(false);
   };
 
@@ -386,10 +386,10 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   };
 
   const filteredExpenditures = useMemo(() => {
-    return expenditures.filter(exp => 
-      exp.recipient.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      exp.reference.toLowerCase().includes(searchQuery.toLowerCase())
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return (expenditures || []).filter(exp =>
+      (exp?.recipient || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (exp?.reference || '').toLowerCase().includes((searchQuery || '').toLowerCase())
+    ).sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime());
   }, [expenditures, searchQuery]);
 
 
@@ -405,21 +405,22 @@ const Expenditures: React.FC<ExpendituresProps> = ({
     }));
   }, [filteredExpenditures]);
 
-  const totalIncome = filteredExpenditures.filter(e => e.type === 'income').reduce((sum, exp) => sum + exp.amount, 0);
+  const totalIncome = filteredExpenditures.filter(e => e.type === 'income').reduce((sum, exp) => sum + (exp?.amount || 0), 0);
 
-  const totalExpense = filteredExpenditures.filter(e => e.type !== 'income').reduce((sum, exp) => sum + exp.amount, 0);
+  const totalExpense = filteredExpenditures.filter(e => e.type !== 'income').reduce((sum, exp) => sum + (exp?.amount || 0), 0);
   const totalBalance = totalIncome - totalExpense;
 
   const totalMonthlyRecurring = useMemo(() => {
-    return recurringExpenses.reduce((sum, r) => {
+    return (recurringExpenses || []).reduce((sum, r) => {
       let monthly = 0;
-      if (r.frequency === 'daily') monthly = r.amount * 30;
-      else if (r.frequency === 'weekly') monthly = r.amount * 4.333;
-      else if (r.frequency === 'monthly') monthly = r.amount;
-      else if (r.frequency === 'bi-monthly') monthly = r.amount / 2;
-      else if (r.frequency === 'quarterly') monthly = r.amount / 3;
-      else if (r.frequency === 'bi-annually') monthly = r.amount / 6;
-      else if (r.frequency === 'yearly') monthly = r.amount / 12;
+      const amt = r?.amount || 0;
+      if (r?.frequency === 'daily') monthly = amt * 30;
+      else if (r?.frequency === 'weekly') monthly = amt * 4.333;
+      else if (r?.frequency === 'monthly') monthly = amt;
+      else if (r?.frequency === 'bi-monthly') monthly = amt / 2;
+      else if (r?.frequency === 'quarterly') monthly = amt / 3;
+      else if (r?.frequency === 'bi-annually') monthly = amt / 6;
+      else if (r?.frequency === 'yearly') monthly = amt / 12;
       return sum + monthly;
     }, 0);
   }, [recurringExpenses]);
