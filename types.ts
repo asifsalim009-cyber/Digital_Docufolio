@@ -198,6 +198,7 @@ export interface RecurringExpense {
   amount: number;
   frequency: 'daily' | 'weekly' | 'monthly' | 'bi-monthly' | 'quarterly' | 'bi-annually' | 'yearly';
   nextDueDate: string; // YYYY-MM-DD
+  dayOfMonth?: number; // e.g. 5th of every month
   createdAt: string;
 }
 
