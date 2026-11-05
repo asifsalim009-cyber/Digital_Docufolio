@@ -209,6 +209,33 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
     setEditDocError(null);
   };
 
+  // Duplicate Detection State
+  const [duplicateModalInfo, setDuplicateModalInfo] = useState<{
+    existingDoc: StoredDocument;
+    pendingDocData: Partial<StoredDocument>;
+  } | null>(null);
+
+  const handleKeepBothDuplicate = () => {
+    if (!duplicateModalInfo) return;
+    const { pendingDocData } = duplicateModalInfo;
+
+    const baseName = pendingDocData.customName || pendingDocData.type;
+    const sameTypeCount = (documents || []).filter(d => (d.customName || d.type).startsWith(baseName as string)).length;
+    const suffix = ` (${sameTypeCount + 1})`;
+
+    const modifiedDoc = {
+      ...pendingDocData,
+      customName: baseName + suffix
+    };
+
+    setDuplicateModalInfo(null);
+    executeSaveNewDoc(modifiedDoc);
+  };
+
+  const handleCancelDuplicate = () => {
+    setDuplicateModalInfo(null);
+  };
+
   const handleSaveEditDoc = () => {
     if (!editDocForm.ownerName || !editDocForm.ownerName.trim()) {
       setEditDocError("Document owner name is required.");
@@ -802,15 +829,33 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
       setIsAdding(true);
   };
 
-  const handleSaveNewDoc = async (skipNameCheck: boolean = false) => {
+  const handleSaveNewDoc = async (skipDuplicateCheck: boolean = false) => {
     if (!newDoc.type || !newDoc.ownerName || !newDoc.files?.length) return;
 
-    const currentOwner = (newDoc.ownerName || '').trim();
+    if (!skipDuplicateCheck) {
+      const existing = (documents || []).find(d =>
+        d.type === newDoc.type &&
+        d.ownerName.toLowerCase() === (newDoc.ownerName || '').toLowerCase() &&
+        ((d.documentNumber && newDoc.documentNumber && d.documentNumber === newDoc.documentNumber) ||
+         (d.customName && newDoc.customName && d.customName.toLowerCase() === (newDoc.customName || '').toLowerCase()))
+      );
+
+      if (existing) {
+        setDuplicateModalInfo({ existingDoc: existing, pendingDocData: newDoc });
+        return;
+      }
+    }
+
+    await executeSaveNewDoc(newDoc);
+  };
+
+  const executeSaveNewDoc = async (docData: Partial<StoredDocument>) => {
+    const currentOwner = (docData.ownerName || '').trim();
     const isOwner = isDocumentOwnerProfile(currentOwner, profile);
-    const isBiz = isBusinessNature(currentOwner, newDoc.type, newDoc.customName) || newDoc.relation === RelationType.BUSINESS || (newDoc.relation as string) === 'BUSINESS';
+    const isBiz = isBusinessNature(currentOwner, docData.type, docData.customName) || docData.relation === RelationType.BUSINESS || (docData.relation as string) === 'BUSINESS';
 
     let docOwner = currentOwner;
-    let docRelation = newDoc.relation || 'SELF';
+    let docRelation = docData.relation || 'SELF';
 
     if (isBiz) {
       docOwner = currentOwner === 'Self' ? (profile?.companyName || 'Business') : currentOwner;
@@ -826,17 +871,17 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
 
     const docObj: StoredDocument = {
       id: Math.random().toString(36).substr(2, 9),
-      type: newDoc.type,
+      type: docData.type!,
       ownerName: docOwner,
       relation: docRelation,
-      files: newDoc.files,
+      files: docData.files || [],
       dateUploaded: new Date().toISOString(),
-      documentNumber: newDoc.documentNumber,
-      expiryDate: newDoc.expiryDate,
-      customName: newDoc.customName,
-      customType: newDoc.customType,
-      isPrivate: newDoc.isPrivate,
-      syncToGoogleCalendar: newDoc.syncToGoogleCalendar,
+      documentNumber: docData.documentNumber,
+      expiryDate: docData.expiryDate,
+      customName: docData.customName,
+      customType: docData.customType,
+      isPrivate: docData.isPrivate,
+      syncToGoogleCalendar: docData.syncToGoogleCalendar,
       reminderConfig: {
         oneMonth: true,
         twoWeeks: true,
@@ -1161,6 +1206,38 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
                onCancel={() => setDocToUnlock(null)}
                credentialId={profile?.biometricCredentialId}
            />
+       )}
+       {duplicateModalInfo && (
+           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-forest-950/70 backdrop-blur-md animate-fadeIn">
+               <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-6 text-forest-900 space-y-4">
+                   <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                       <AlertCircle size={24} className="shrink-0" />
+                       <div>
+                           <h4 className="font-bold text-sm">Duplicate Document Detected</h4>
+                           <p className="text-xs text-forest-600 mt-0.5">A similar document already exists in your vault.</p>
+                       </div>
+                   </div>
+
+                   <p className="text-xs text-forest-600">
+                       Existing document: <span className="font-bold text-forest-900">{duplicateModalInfo.existingDoc.customName || duplicateModalInfo.existingDoc.type}</span> (Holder: {duplicateModalInfo.existingDoc.ownerName})
+                   </p>
+
+                   <div className="flex gap-3 pt-2">
+                       <button
+                           onClick={handleCancelDuplicate}
+                           className="flex-1 py-2.5 bg-sand-100 hover:bg-sand-200 text-forest-700 rounded-xl font-bold text-xs transition-colors"
+                       >
+                           Cancel
+                       </button>
+                       <button
+                           onClick={handleKeepBothDuplicate}
+                           className="flex-1 py-2.5 bg-forest-900 hover:bg-gold-600 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                       >
+                           Keep Both (with Suffix)
+                       </button>
+                   </div>
+               </div>
+           </div>
        )}
        {/* Compact Header Toolbar */}
        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 shrink-0 bg-white/50 p-3 rounded-xl border border-sand-200 backdrop-blur-sm">
