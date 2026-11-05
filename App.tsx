@@ -149,6 +149,11 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
   useEffect(() => {
+    if (user) {
+      setCurrentView(AppView.PROFILE);
+    }
+  }, [user]);
+  useEffect(() => {
     if (!user) return;
     const profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
@@ -629,7 +634,12 @@ const App: React.FC = () => {
                    tasks={tasks}
                    isFullscreen={isFullscreen}
                    onToggleFullscreen={toggleFullscreen}
-                   onUpgrade={(plan) => handleUpdateProfile({ ...profile, plan, subscriptionStatus: "active", lastPaymentDate: new Date().toISOString() })}
+                   onUpgrade={(plan) => {
+                     handleUpdateProfile({ ...profile, plan, subscriptionStatus: "active", lastPaymentDate: new Date().toISOString() });
+                     setTimeout(() => {
+                       window.location.reload();
+                     }, 800);
+                   }}
                    onUpdateProfile={handleUpdateProfile}
                    onReplayTutorial={() => setRunTutorial(true)}
                  />
