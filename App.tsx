@@ -13,6 +13,7 @@ import Expenditures from './components/Expenditures';
 import { Bell, LogIn, Mail, Sparkles, X, CheckCircle2, ShieldAlert, Fingerprint, ChevronRight, ScanFace, Lock, Delete, LogOut, Maximize, Minimize, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
 import { AuthScreen } from './components/AuthScreen';
 import { SplashScreen } from './components/SplashScreen';
+import { Onboarding } from './components/Onboarding';
 import { initDB, getOfflineDocuments, saveOfflineDocument, deleteOfflineDocument, queueSyncAction, processSyncQueue } from './idbSync';
 import { ViewOnceViewer } from './components/ViewOnceViewer';
 import { BiometricLock } from './components/BiometricLock';
@@ -54,6 +55,9 @@ const App: React.FC = () => {
     return urlParams.get('shareToken') || urlParams.get('token') || urlParams.get('viewOnce') || null;
   });
   const [showSplash, setShowSplash] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
+    return localStorage.getItem('folio_onboarding_done') === 'true';
+  });
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   // App State
@@ -436,6 +440,9 @@ const App: React.FC = () => {
       />
     );
   }
+  if (!hasCompletedOnboarding) {
+    return <Onboarding onComplete={() => setHasCompletedOnboarding(true)} />;
+  }
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
@@ -642,6 +649,7 @@ const App: React.FC = () => {
                    }}
                    onUpdateProfile={handleUpdateProfile}
                    onReplayTutorial={() => setRunTutorial(true)}
+                   onRevisitOnboarding={() => setHasCompletedOnboarding(false)}
                  />
                )}
                {currentView === AppView.EXPENDITURES && (

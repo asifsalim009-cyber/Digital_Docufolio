@@ -46,6 +46,7 @@ interface SettingsProps {
   onUpdateProfile?: (profile: UserProfile) => void;
   onReplaySplash?: () => void;
   onReplayTutorial?: () => void;
+  onRevisitOnboarding?: () => void;
   initialTab?: 'account' | 'plan' | 'notifications' | 'security' | 'support';
 }
 
@@ -57,7 +58,8 @@ const Settings: React.FC<SettingsProps> = ({
   journalEntries = [], 
   tasks = [], 
   onUpgrade, 
-  onUpdateProfile, 
+  onUpdateProfile,
+  onRevisitOnboarding,
   onReplaySplash, 
   onReplayTutorial,
   initialTab = 'account'
@@ -801,9 +803,17 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </div>
 
-                <div className="text-xs font-medium text-forest-400 bg-sand-50 px-4 py-2 rounded-full border border-sand-200">
+                <div className="text-xs font-medium text-forest-400 bg-sand-50 px-4 py-2 rounded-full border border-sand-200 mb-3">
                   Beta Version 1.0.2 • Digital DocuFolio
                 </div>
+
+                <button
+                  onClick={onRevisitOnboarding}
+                  className="py-2.5 px-5 bg-forest-900 hover:bg-forest-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+                >
+                  <Sparkles size={14} className="text-amber-400" />
+                  <span>Revisit Introduction & Onboarding</span>
+                </button>
               </div>
             )}
           </div>
