@@ -368,7 +368,7 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
         {/* Avatar Card */}
         <div className="lg:col-span-4 flex flex-col space-y-6">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-sand-200 flex flex-col items-center">
-             <div className="relative group w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-sand-100 ring-2 ring-forest-900/5 shadow-sm">
+             <div className="relative group w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-sand-100 ring-4 ring-forest-900/5 shadow-md">
                 {(isEditing ? editForm.profileImage : profile.profileImage) ? (
                   <img 
                     src={isEditing ? editForm.profileImage : profile.profileImage} 
@@ -377,13 +377,13 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-sand-200 text-sand-400">
-                    <UserCircle size={52} />
+                    <UserCircle size={44} />
                   </div>
                 )}
                 {isEditing && (
                   <div className="absolute inset-0 bg-forest-900/60 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-opacity opacity-0 group-hover:opacity-100">
-                    <label className="cursor-pointer flex flex-col items-center gap-1 text-white font-medium text-xs p-2 rounded-xl hover:bg-white/10 transition-colors">
-                      <Camera size={20} />
+                    <label className="cursor-pointer flex flex-col items-center gap-0.5 text-white font-medium text-[10px] p-1.5 rounded-full hover:bg-white/10 transition-colors">
+                      <Camera size={16} />
                       <span>Change</span>
                       <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </label>
