@@ -140,9 +140,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       {/* Top Bar */}
       <div className="p-5 flex justify-between items-center z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-sky-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-            <ShieldCheck size={18} className="text-white" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-white/10 p-1 flex items-center justify-center border border-white/10">
+            <img
+              src="/splash_logo.png"
+              alt="Logo"
+              onError={(e) => { e.currentTarget.src = 'https://lh3.googleusercontent.com/d/1P5lYaVSTowpvW3Ys5zO1GfwG06l1AJkV'; }}
+              className="w-full h-full object-contain"
+            />
           </div>
           <span className="font-display font-bold text-sm tracking-widest text-slate-200">DIGITAL DOCUFOLIO</span>
         </div>
@@ -161,9 +166,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         {currentStep === 0 && (
           /* Welcome Screen */
           <div className="space-y-6 animate-fadeIn">
-            <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/20 border border-cyan-500/30 flex items-center justify-center shadow-2xl shadow-cyan-500/20 relative">
-              <div className="absolute inset-0 rounded-3xl bg-cyan-500/10 animate-ping opacity-25" />
-              <ShieldCheck size={48} className="text-cyan-400" />
+            <div className="w-28 h-28 mx-auto relative flex items-center justify-center">
+              <img
+                src="/splash_logo.png"
+                alt="Digital DocuFolio Logo"
+                onError={(e) => { e.currentTarget.src = 'https://lh3.googleusercontent.com/d/1P5lYaVSTowpvW3Ys5zO1GfwG06l1AJkV'; }}
+                className="w-full h-full object-contain drop-shadow-[0_10px_25px_rgba(0,210,255,0.3)] animate-pulse"
+              />
             </div>
 
             <div className="space-y-2">
