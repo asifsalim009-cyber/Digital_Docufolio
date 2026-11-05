@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, SocialHandles, CustomLink } from '../types';
-import { Edit2, Save, X, Activity, Droplet, Ruler, UserCircle, Camera, Fingerprint, Globe, Twitter, Linkedin, Github, Facebook, Instagram, Search, Sparkles, Link as LinkIcon, ExternalLink, RefreshCw, Mail, Music2, Video, Share2, Plus, Trash2, Copy, Check, Phone, Briefcase, AlertCircle, Shield, Car, Heart } from 'lucide-react';
+import { Edit2, Save, X, Activity, Droplet, Ruler, UserCircle, Camera, Fingerprint, Globe, Twitter, Linkedin, Github, Facebook, Instagram, Search, Sparkles, Link as LinkIcon, ExternalLink, RefreshCw, Mail, Music2, Video, Share2, Plus, Trash2, Copy, Check, Phone, Briefcase, AlertCircle, Shield, Car, Heart, Lock, ShieldCheck } from 'lucide-react';
 import { apiFetch } from '../api';
 
 interface ProfileProps {
@@ -407,9 +407,20 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
                    <div>
                        <h3 className="text-2xl font-bold text-forest-900 tracking-tight">{profile.fullName}</h3>
                        <p className="text-gold-600 font-medium">@{profile.nickName}</p>
-                       <div className="mt-3 inline-flex px-3 py-1 bg-sky-50 text-sky-600 border border-sky-100 rounded-full text-xs font-bold uppercase tracking-wider items-center gap-1.5 shadow-sm">
-                           <Shield size={14} className="text-sky-500" />
-                           {profile.plan || 'Basic Vault'}
+                       <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                           <div className="inline-flex px-3 py-1 bg-sky-50 text-sky-600 border border-sky-100 rounded-full text-xs font-bold uppercase tracking-wider items-center gap-1.5 shadow-sm">
+                               <Shield size={14} className="text-sky-500" />
+                               {profile.plan || 'Basic Vault'}
+                           </div>
+                           <div className="inline-flex px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-[11px] font-bold items-center gap-1 shadow-xs" title="Client-side AES-256-GCM authenticated encryption active">
+                               <ShieldCheck size={13} className="text-emerald-600" />
+                               <span>AES-256 Encrypted</span>
+                           </div>
+                       </div>
+                       <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-sand-50 border border-sand-200 rounded-lg text-[11px] text-forest-600 font-medium">
+                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                           <Lock size={11} className="text-emerald-600" />
+                           <span>Vault Encryption Active • Zero-Knowledge</span>
                        </div>
                    </div>
                 )}
@@ -533,73 +544,6 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
                      </div>
                    )}
                  </div>
-               </div>
-
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-sand-50 p-4 rounded-xl border border-sand-100 hover:border-sand-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-2 text-forest-500">
-                       <UserCircle size={16} />
-                       <span className="text-xs font-bold uppercase tracking-wider">Age</span>
-                    </div>
-                    {isEditing ? (
-                      <input 
-                        type="number"
-                        className="w-full bg-white border border-sand-300 p-2 rounded-lg font-display text-lg font-bold text-forest-900 focus:outline-none focus:border-gold-500"
-                        value={editForm.age}
-                        onChange={(e) => handleChange('age', parseInt(e.target.value) || 0)}
-                      />
-                    ) : (
-                      <div className="text-2xl font-display font-bold text-forest-900">{profile.age}</div>
-                    )}
-                  </div>
-
-                  <div className="bg-sand-50 p-4 rounded-xl border border-sand-100 hover:border-sand-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-2 text-forest-500">
-                       <Droplet size={16} />
-                       <span className="text-xs font-bold uppercase tracking-wider">Blood</span>
-                    </div>
-                    {isEditing ? (
-                      <input 
-                        className="w-full bg-white border border-sand-300 p-2 rounded-lg font-display text-lg font-bold text-forest-900 focus:outline-none focus:border-gold-500"
-                        value={editForm.bloodType}
-                        onChange={(e) => handleChange('bloodType', e.target.value)}
-                      />
-                    ) : (
-                      <div className="text-2xl font-display font-bold text-forest-900">{profile.bloodType}</div>
-                    )}
-                  </div>
-
-                  <div className="bg-sand-50 p-4 rounded-xl border border-sand-100 hover:border-sand-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-2 text-forest-500">
-                       <Ruler size={16} />
-                       <span className="text-xs font-bold uppercase tracking-wider">Height</span>
-                    </div>
-                    {isEditing ? (
-                      <input 
-                        className="w-full bg-white border border-sand-300 p-2 rounded-lg font-display text-lg font-bold text-forest-900 focus:outline-none focus:border-gold-500"
-                        value={editForm.height}
-                        onChange={(e) => handleChange('height', e.target.value)}
-                      />
-                    ) : (
-                      <div className="text-2xl font-display font-bold text-forest-900">{profile.height}</div>
-                    )}
-                  </div>
-
-                   <div className="bg-sand-50 p-4 rounded-xl border border-sand-100 hover:border-sand-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-2 text-forest-500">
-                       <Activity size={16} />
-                       <span className="text-xs font-bold uppercase tracking-wider">Weight</span>
-                    </div>
-                    {isEditing ? (
-                      <input 
-                        className="w-full bg-white border border-sand-300 p-2 rounded-lg font-display text-lg font-bold text-forest-900 focus:outline-none focus:border-gold-500"
-                        value={editForm.weight}
-                        onChange={(e) => handleChange('weight', e.target.value)}
-                      />
-                    ) : (
-                      <div className="text-2xl font-display font-bold text-forest-900">{profile.weight}</div>
-                    )}
-                  </div>
                </div>
             </div>
           </div>

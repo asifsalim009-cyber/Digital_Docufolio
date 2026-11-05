@@ -9,6 +9,7 @@ import { createCalendarEvent } from '../googleCalendar';
 import { useVoiceSearch } from '../useVoiceSearch';
 import { uploadToGoogleDrive } from '../drive';
 import { apiFetch } from '../api';
+import { WalletSecuritySection } from './WalletSecuritySection';
 
 interface WalletProps {
   profile?: UserProfile;
@@ -19,6 +20,8 @@ interface WalletProps {
   onAddDocument: (doc: StoredDocument) => void;
   onUpdateDocument: (doc: StoredDocument) => void;
   onDeleteDocument: (id: string) => void;
+  onVaultStateChange?: () => void;
+  onDocumentsMigrated?: (updatedDocs: StoredDocument[]) => void;
 }
 
 const getPlanLimits = (plan: SubscriptionPlan) => {
@@ -104,7 +107,18 @@ const isBusinessNature = (ownerName?: string, docType?: DocumentType | string, c
   return false;
 };
 
-const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, currentPlan, onNavigateToPlans, onAddDocument, onUpdateDocument, onDeleteDocument }) => {
+const Wallet: React.FC<WalletProps> = ({ 
+  profile, 
+  onUseAiCredit, 
+  documents, 
+  currentPlan, 
+  onNavigateToPlans, 
+  onAddDocument, 
+  onUpdateDocument, 
+  onDeleteDocument,
+  onVaultStateChange,
+  onDocumentsMigrated
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const { isListening: isVoiceSearching, toggleListening: toggleVoiceSearch } = useVoiceSearch((text) => setSearchTerm(text));
   const [selectedType, setSelectedType] = useState<string>('ALL');
@@ -1186,6 +1200,13 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
 
        {/* Scrollable Content Area */}
        <div className="flex-1 overflow-y-auto pb-20 custom-scrollbar pr-2">
+           {/* Hardware-Backed AES-256-GCM Vault Security & Encryption Control */}
+           <WalletSecuritySection
+               documents={documents}
+               onDocumentsMigrated={onDocumentsMigrated}
+               onVaultUnlocked={onVaultStateChange}
+               onVaultLocked={onVaultStateChange}
+           />
            
            {/* View: Personal Grid */}
            {activeCategory === 'PERSONAL' && (

@@ -21,6 +21,13 @@ import { onAuthStateChanged, type User, signOut } from 'firebase/auth';
 import { doc, setDoc, deleteDoc, collection, onSnapshot } from 'firebase/firestore';
 import { Joyride, Step, EventData, STATUS } from 'react-joyride';
 import { scheduleDocumentExpiryNotifications, scheduleTaskNotifications, initNotificationClickListener } from './notificationService';
+import {
+  getActiveWalletKey,
+  getActiveKeyFingerprint,
+  encryptDocument,
+  processLoadedRecords,
+  ensureWalletKeyReady
+} from './crypto/walletCrypto';
 const cleanForFirestore = <T,>(obj: T): T => JSON.parse(JSON.stringify(obj));
 
 const App: React.FC = () => {
@@ -159,18 +166,22 @@ const App: React.FC = () => {
         });
       }
     });
-    // IDB offline-first sync logic for documents
-    getOfflineDocuments().then(docs => {
+    // IDB offline-first sync logic for documents with transparent AES-256 decryption
+    getOfflineDocuments().then(async (docs) => {
       if (docs && docs.length > 0) {
-        setDocuments(docs);
+        await ensureWalletKeyReady().catch(() => {});
+        const { decryptedDocs } = await processLoadedRecords(docs, getActiveWalletKey());
+        setDocuments(decryptedDocs);
       }
     });
 
-    const docsUnsub = onSnapshot(collection(db, 'users', user.uid, 'documents'), { includeMetadataChanges: true }, (snap) => {
+    const docsUnsub = onSnapshot(collection(db, 'users', user.uid, 'documents'), { includeMetadataChanges: true }, async (snap) => {
       // Only sync down from server if we are not pending local writes to avoid overwriting optimistic UI
       if (!snap.metadata.hasPendingWrites) {
          const serverDocs = snap.docs.map(d => d.data() as StoredDocument);
-         setDocuments(serverDocs);
+         await ensureWalletKeyReady().catch(() => {});
+         const { decryptedDocs } = await processLoadedRecords(serverDocs, getActiveWalletKey());
+         setDocuments(decryptedDocs);
          serverDocs.forEach(doc => saveOfflineDocument(doc));
       }
     });
@@ -241,20 +252,65 @@ const App: React.FC = () => {
   };
   const handleAddDocument = async (docObj: StoredDocument) => {
     setDocuments(prev => [...prev, docObj]);
-    await saveOfflineDocument(docObj);
+
+    let recordToPersist = docObj;
+    try {
+      const activeKey = getActiveWalletKey();
+      const fingerprint = getActiveKeyFingerprint();
+      if (activeKey && fingerprint && !docObj.isEncrypted) {
+        recordToPersist = await encryptDocument(docObj, activeKey, fingerprint);
+      }
+    } catch (e) {
+      console.warn('Document encryption fallback to raw save:', e);
+    }
+
+    await saveOfflineDocument(recordToPersist);
     if (navigator.onLine) {
-      if (user) await setDoc(doc(db, 'users', user.uid, 'documents', docObj.id), cleanForFirestore(docObj));
+      if (user) await setDoc(doc(db, 'users', user.uid, 'documents', recordToPersist.id), cleanForFirestore(recordToPersist));
     } else {
-      await queueSyncAction('ADD', docObj);
+      await queueSyncAction('ADD', recordToPersist);
     }
   };
   const handleUpdateDocument = async (updatedDoc: StoredDocument) => {
     setDocuments(prev => prev.map(d => d.id === updatedDoc.id ? updatedDoc : d));
-    await saveOfflineDocument(updatedDoc);
+
+    let recordToPersist = updatedDoc;
+    try {
+      const activeKey = getActiveWalletKey();
+      const fingerprint = getActiveKeyFingerprint();
+      if (activeKey && fingerprint && !updatedDoc.isEncrypted) {
+        recordToPersist = await encryptDocument(updatedDoc, activeKey, fingerprint);
+      }
+    } catch (e) {
+      console.warn('Document encryption fallback to raw save:', e);
+    }
+
+    await saveOfflineDocument(recordToPersist);
     if (navigator.onLine) {
-      if (user) await setDoc(doc(db, 'users', user.uid, 'documents', updatedDoc.id), cleanForFirestore(updatedDoc));
+      if (user) await setDoc(doc(db, 'users', user.uid, 'documents', recordToPersist.id), cleanForFirestore(recordToPersist));
     } else {
-      await queueSyncAction('UPDATE', updatedDoc);
+      await queueSyncAction('UPDATE', recordToPersist);
+    }
+  };
+  const handleVaultStateChange = async () => {
+    const rawDocs = await getOfflineDocuments();
+    if (rawDocs && rawDocs.length > 0) {
+      const { decryptedDocs } = await processLoadedRecords(rawDocs, getActiveWalletKey());
+      setDocuments(decryptedDocs);
+    }
+  };
+  const handleDocumentsMigrated = async (updatedDocs: StoredDocument[]) => {
+    const activeKey = getActiveWalletKey();
+    const fingerprint = getActiveKeyFingerprint();
+    if (activeKey && fingerprint) {
+      for (const docObj of updatedDocs) {
+        const encrypted = await encryptDocument(docObj, activeKey, fingerprint);
+        await saveOfflineDocument(encrypted);
+        if (navigator.onLine && user) {
+          await setDoc(doc(db, 'users', user.uid, 'documents', encrypted.id), cleanForFirestore(encrypted));
+        }
+      }
+      setDocuments(updatedDocs);
     }
   };
   const handleDeleteDocument = async (id: string) => {
@@ -605,6 +661,8 @@ const App: React.FC = () => {
                    onAddDocument={handleAddDocument} 
                    onUpdateDocument={handleUpdateDocument}
                    onDeleteDocument={handleDeleteDocument}
+                   onVaultStateChange={handleVaultStateChange}
+                   onDocumentsMigrated={handleDocumentsMigrated}
                  />
                )}
                {currentView === AppView.JOURNAL && (

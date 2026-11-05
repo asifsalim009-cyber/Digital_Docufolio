@@ -1,0 +1,86 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.google.gms:google-services:4.4.4'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    // Keep all Kotlin runtime artifacts on one compatible version.
+    // Some Capacitor/Cordova plugins can otherwise pull the legacy
+    // kotlin-stdlib-jdk7/jdk8 1.6.x artifacts alongside kotlin-stdlib 1.8.x,
+    // which causes duplicate-class errors during Android builds.
+    configurations.configureEach {
+        resolutionStrategy {
+            force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-common:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+        }
+    }
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += [
+            "-Xlint:-options",
+            "-Xlint:-deprecation",
+            "-Xlint:-unchecked"
+        ]
+        options.deprecation = false
+        options.warnings = false
+    }
+}
+
+subprojects {
+    afterEvaluate { project ->
+        if (project.extensions.findByName('android') != null) {
+            def jvmVer = JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21) ? JavaVersion.VERSION_21 : JavaVersion.VERSION_17
+            project.android {
+                compileOptions {
+                    sourceCompatibility jvmVer
+                    targetCompatibility jvmVer
+                }
+                // Ensure namespace is set for AGP 8+ compatibility in Capacitor/Cordova plugin modules
+                if (hasProperty('namespace') && namespace == null) {
+                    def manifestFile = file("src/main/AndroidManifest.xml")
+                    if (manifestFile.exists()) {
+                        def matcher = manifestFile.text =~ 'package="([^"]+)"'
+                        if (matcher.find()) {
+                            namespace = matcher.group(1)
+                        }
+                    }
+                    if (namespace == null) {
+                        namespace = "com.capacitorjs.plugin." + project.name.replaceAll('[^A-Za-z0-9_]', '_')
+                    }
+                }
+                // Configure publishing single variant for AGP 8 strict variant resolution
+                if (extensions.findByName('publishing') != null || hasProperty('libraryVariants')) {
+                    publishing {
+                        singleVariant("release") {
+                            withSourcesJar()
+                            withJavadocJar()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

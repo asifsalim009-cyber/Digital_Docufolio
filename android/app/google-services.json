@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "393681011941",
+    "project_id": "gen-lang-client-0457821531",
+    "storage_bucket": "gen-lang-client-0457821531.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393681011941:android:7d9dd4ca3c43acb67bc00c",
+        "android_client_info": {
+          "package_name": "com.docufolio.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "393681011941-oqtnlutp5ul7l5lo7tru67dn026hhkd1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.docufolio.app",
+            "certificate_hash": "7c18388cf0102ed73a4db57fd760e82b81011ab2"
+          }
+        },
+        {
+          "client_id": "393681011941-m5r8dpkm1cu82gs34kdvigbofmtet92e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX27sW7PQ8Q3lxPBNB8qax0tYxd8uwhW8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "393681011941-m5r8dpkm1cu82gs34kdvigbofmtet92e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

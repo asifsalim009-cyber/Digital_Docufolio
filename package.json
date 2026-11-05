@@ -8,6 +8,7 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "lint": "vite build",
+    "test": "tsx tests/runCryptoTests.ts",
     "cap:sync": "npx cap sync android",
     "cap:build": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android"
