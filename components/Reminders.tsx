@@ -18,7 +18,6 @@ interface RemindersProps {
 
 const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocument, onUpdateTask }) => {
   const [activeTab, setActiveTab] = useState<'expiry' | 'tasks'>('expiry');
-  const [reminderFilter, setReminderFilter] = useState<'all' | 'expired' | '1month' | '3months' | '6months' | '1year'>('all');
   const [previewFile, setPreviewFile] = useState<DocumentFile | null>(null);
   const [selectedReminderDoc, setSelectedReminderDoc] = useState<StoredDocument | null>(null);
   const [calSyncStatus, setCalSyncStatus] = useState<string | null>(null);
@@ -30,34 +29,21 @@ const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocumen
       .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
   }, [documents]);
 
+  const groupedDocuments = useMemo<Record<string, StoredDocument[]>>(() => {
+    return documentsWithExpiry.reduce((acc: Record<string, StoredDocument[]>, doc: StoredDocument) => {
+      const owner = doc.ownerName;
+      if (!acc[owner]) acc[owner] = [];
+      acc[owner].push(doc);
+      return acc;
+    }, {} as Record<string, StoredDocument[]>);
+  }, [documentsWithExpiry]);
+
   const getDaysUntilExpiry = (dateStr: string) => {
     const today = new Date();
     const expiry = new Date(dateStr);
     const diffTime = expiry.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
   };
-
-  const filteredDocumentsWithExpiry = useMemo(() => {
-    return documentsWithExpiry.filter(doc => {
-      if (!doc.expiryDate) return false;
-      const days = getDaysUntilExpiry(doc.expiryDate);
-      if (reminderFilter === 'expired') return days < 0;
-      if (reminderFilter === '1month') return days >= 0 && days <= 30;
-      if (reminderFilter === '3months') return days >= 0 && days <= 90;
-      if (reminderFilter === '6months') return days >= 0 && days <= 180;
-      if (reminderFilter === '1year') return days >= 0 && days <= 365;
-      return true; // 'all'
-    });
-  }, [documentsWithExpiry, reminderFilter]);
-
-  const groupedDocuments = useMemo<Record<string, StoredDocument[]>>(() => {
-    return filteredDocumentsWithExpiry.reduce((acc: Record<string, StoredDocument[]>, doc: StoredDocument) => {
-      const owner = doc.ownerName;
-      if (!acc[owner]) acc[owner] = [];
-      acc[owner].push(doc);
-      return acc;
-    }, {} as Record<string, StoredDocument[]>);
-  }, [filteredDocumentsWithExpiry]);
 
   // Schedule Android System Notifications for both Document Expirations and Tasks
   useEffect(() => {
@@ -142,7 +128,7 @@ const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocumen
     <div className="h-full flex flex-col animate-fadeIn relative">
       
       {/* Header & Navigation Switcher */}
-      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-4 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 gap-4">
           <div>
             <h2 className="text-3xl font-display font-bold text-forest-900">Reminders & Alerts</h2>
             <p className="text-forest-500 text-sm">System notifications & Google Calendar sync for expirations and to-dos.</p>
@@ -180,39 +166,13 @@ const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocumen
           </div>
       </div>
 
-      {/* Filter Bar for Document Expiry */}
-      {activeTab === 'expiry' && (
-        <div className="flex flex-wrap gap-2 mb-4 px-1">
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'expired', label: 'Expired' },
-            { id: '1month', label: 'Expiry within 1 Month' },
-            { id: '3months', label: '3 Months' },
-            { id: '6months', label: '6 Months' },
-            { id: '1year', label: '1 Year' },
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => setReminderFilter(f.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
-                reminderFilter === f.id
-                  ? 'bg-forest-900 text-white shadow-sm ring-1 ring-forest-900'
-                  : 'bg-white hover:bg-sand-100 text-forest-700 border border-sand-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Content Area */}
       <div className="flex-1 overflow-hidden relative bg-white/40 rounded-3xl border border-white/50 shadow-sm p-1 ring-1 ring-white/20">
          
          {/* --- DOCUMENT EXPIRY VIEW (GROUPED COMPACT LIST) --- */}
          {activeTab === 'expiry' && (
             <div className="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-8">
-                {filteredDocumentsWithExpiry.length === 0 ? (
+                {documentsWithExpiry.length === 0 ? (
                    <div className="h-full flex flex-col items-center justify-center text-center p-8">
                       <div className="w-20 h-20 bg-sand-50 rounded-full flex items-center justify-center mb-4 shadow-inner">
                           <Shield size={40} className="text-sand-300" />
