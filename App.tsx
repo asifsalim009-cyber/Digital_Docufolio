@@ -511,14 +511,6 @@ const App: React.FC = () => {
                 </div>
             </div>
             <div className="flex items-center gap-3 ml-auto">
-                {/* Fullscreen Toggle */}
-                <button
-                    onClick={toggleFullscreen}
-                    className="p-2.5 bg-slate-900/80 border border-white/10 rounded-xl text-slate-300 hover:text-sky-300 hover:border-sky-400/40 shadow-sm transition-all backdrop-blur-md"
-                    title="Toggle Fullscreen"
-                >
-                    {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
-                </button>
                 {/* Settings Toggle */}
                 <button
                     onClick={() => setCurrentView(AppView.SETTINGS)}

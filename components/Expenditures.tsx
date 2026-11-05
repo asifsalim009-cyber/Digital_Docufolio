@@ -64,43 +64,6 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
-  // Maximized Screen State
-  const [maximizedTab, setMaximizedTab] = useState<Tab | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [tempBudgets, setTempBudgets] = useState<Budget[]>(budgets);
-  const [tempRecurring, setTempRecurring] = useState<RecurringExpense[]>(recurringExpenses);
-
-  const handleOpenMaximized = (tab: Tab) => {
-    setMaximizedTab(tab);
-    setActiveTab(tab);
-    setTempBudgets(budgets || []);
-    setTempRecurring(recurringExpenses || []);
-    setHasChanges(false);
-  };
-
-  const handleCancelMaximized = () => {
-    if (hasChanges) {
-      const confirmed = window.confirm("You have unsaved changes. Do you want to discard them and cancel?");
-      if (!confirmed) return;
-    }
-    setMaximizedTab(null);
-    setHasChanges(false);
-  };
-
-  const handleSaveMaximized = () => {
-    if (maximizedTab === 'budget') {
-      for (const b of tempBudgets) {
-        if (!b.category || b.amount < 0) {
-          alert("Please enter a valid category name and non-negative amount.");
-          return;
-        }
-        if (onUpdateBudget) onUpdateBudget(b);
-      }
-    }
-    setHasChanges(false);
-    setMaximizedTab(null);
-  };
-
   const paymentForSuggestions = useMemo(() => {
     return Array.from(new Set(expenditures.map(e => e.paymentFor).filter(Boolean))) as string[];
   }, [expenditures]);
@@ -386,10 +349,10 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   };
 
   const filteredExpenditures = useMemo(() => {
-    return (expenditures || []).filter(exp =>
-      (exp?.recipient || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-      (exp?.reference || '').toLowerCase().includes((searchQuery || '').toLowerCase())
-    ).sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime());
+    return expenditures.filter(exp =>
+      exp.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      exp.reference.toLowerCase().includes(searchQuery.toLowerCase())
+    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenditures, searchQuery]);
 
 
@@ -405,22 +368,21 @@ const Expenditures: React.FC<ExpendituresProps> = ({
     }));
   }, [filteredExpenditures]);
 
-  const totalIncome = filteredExpenditures.filter(e => e.type === 'income').reduce((sum, exp) => sum + (exp?.amount || 0), 0);
+  const totalIncome = filteredExpenditures.filter(e => e.type === 'income').reduce((sum, exp) => sum + exp.amount, 0);
 
-  const totalExpense = filteredExpenditures.filter(e => e.type !== 'income').reduce((sum, exp) => sum + (exp?.amount || 0), 0);
+  const totalExpense = filteredExpenditures.filter(e => e.type !== 'income').reduce((sum, exp) => sum + exp.amount, 0);
   const totalBalance = totalIncome - totalExpense;
 
   const totalMonthlyRecurring = useMemo(() => {
-    return (recurringExpenses || []).reduce((sum, r) => {
+    return recurringExpenses.reduce((sum, r) => {
       let monthly = 0;
-      const amt = r?.amount || 0;
-      if (r?.frequency === 'daily') monthly = amt * 30;
-      else if (r?.frequency === 'weekly') monthly = amt * 4.333;
-      else if (r?.frequency === 'monthly') monthly = amt;
-      else if (r?.frequency === 'bi-monthly') monthly = amt / 2;
-      else if (r?.frequency === 'quarterly') monthly = amt / 3;
-      else if (r?.frequency === 'bi-annually') monthly = amt / 6;
-      else if (r?.frequency === 'yearly') monthly = amt / 12;
+      if (r.frequency === 'daily') monthly = r.amount * 30;
+      else if (r.frequency === 'weekly') monthly = r.amount * 4.333;
+      else if (r.frequency === 'monthly') monthly = r.amount;
+      else if (r.frequency === 'bi-monthly') monthly = r.amount / 2;
+      else if (r.frequency === 'quarterly') monthly = r.amount / 3;
+      else if (r.frequency === 'bi-annually') monthly = r.amount / 6;
+      else if (r.frequency === 'yearly') monthly = r.amount / 12;
       return sum + monthly;
     }, 0);
   }, [recurringExpenses]);
@@ -587,132 +549,16 @@ const Expenditures: React.FC<ExpendituresProps> = ({
         {(['transactions', 'budget', 'statements'] as Tab[]).map((tab) => (
           <button
             key={tab}
-            onClick={() => handleOpenMaximized(tab)}
-            className={`pb-3 text-sm font-bold transition-colors relative capitalize flex items-center gap-2 ${activeTab === tab ? 'text-forest-900 border-b-2 border-forest-900' : 'text-forest-400 hover:text-forest-600'}`}
+            onClick={() => setActiveTab(tab)}
+            className={`pb-3 text-sm font-medium transition-colors relative capitalize ${activeTab === tab ? 'text-forest-900' : 'text-forest-400 hover:text-forest-600'}`}
           >
-            <span>{tab}</span>
-            <span className="text-[10px] bg-sand-200 text-forest-700 px-1.5 py-0.5 rounded flex items-center gap-1 font-mono">
-              <Maximize size={10} /> Maximize
-            </span>
+            {tab}
+            {activeTab === tab && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-forest-900 rounded-t-full"></span>
+            )}
           </button>
         ))}
       </div>
-
-      {/* Maximized Screen Overlay */}
-      {maximizedTab && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col animate-fadeIn overflow-hidden">
-          <div className="p-4 sm:p-6 bg-forest-900 text-white flex justify-between items-center shadow-lg">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCancelMaximized}
-                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white"
-                title="Back"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div>
-                <h3 className="font-display font-bold text-xl capitalize">{maximizedTab} View (Maximized)</h3>
-                <p className="text-xs text-slate-300">Make changes and save or cancel below</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCancelMaximized}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveMaximized}
-                className="px-5 py-2 bg-gold-500 hover:bg-gold-600 text-forest-900 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
-              >
-                <Save size={16} /> Save Changes
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-sand-50/50 custom-scrollbar">
-            {maximizedTab === 'transactions' && (
-              <div className="max-w-6xl mx-auto space-y-6">
-                <h4 className="text-lg font-bold text-forest-900">Maximized Transactions Ledger</h4>
-                <div className="bg-white rounded-3xl border border-sand-200 p-6 shadow-sm">
-                   <p className="text-sm text-forest-600 mb-4">Viewing all {filteredExpenditures.length} ledger transactions in maximized mode.</p>
-                   <div className="space-y-3">
-                      {filteredExpenditures.map(exp => (
-                        <div key={exp.id} className="p-4 rounded-2xl bg-sand-50 border border-sand-200 flex justify-between items-center">
-                           <div>
-                              <p className="font-bold text-forest-900">{exp.recipient}</p>
-                              <p className="text-xs text-forest-500">{exp.date} • {exp.paymentMethod || 'M-PESA'}</p>
-                           </div>
-                           <div className="font-bold text-forest-900">
-                             Ksh {exp.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                           </div>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-              </div>
-            )}
-
-            {maximizedTab === 'budget' && (
-              <div className="max-w-6xl mx-auto space-y-6">
-                <h4 className="text-lg font-bold text-forest-900">Maximized Budget Planner</h4>
-                <div className="bg-white rounded-3xl border border-sand-200 p-6 shadow-sm space-y-4">
-                   <p className="text-sm text-forest-600 mb-4">Edit budget allocations and targets below. Click Save Changes when done.</p>
-                   {tempBudgets.map((b, idx) => (
-                     <div key={b.id} className="p-4 rounded-2xl bg-sand-50 border border-sand-200 flex items-center gap-4">
-                       <input
-                         className="flex-1 bg-white border border-sand-300 rounded-xl p-2.5 text-sm font-bold text-forest-900"
-                         value={b.category}
-                         onChange={(e) => {
-                           setHasChanges(true);
-                           const val = e.target.value;
-                           setTempBudgets(prev => prev.map((item, i) => i === idx ? { ...item, category: val } : item));
-                         }}
-                       />
-                       <input
-                         type="number"
-                         className="w-36 bg-white border border-sand-300 rounded-xl p-2.5 text-sm font-bold text-forest-900"
-                         value={b.amount}
-                         onChange={(e) => {
-                           setHasChanges(true);
-                           const val = parseFloat(e.target.value) || 0;
-                           setTempBudgets(prev => prev.map((item, i) => i === idx ? { ...item, amount: val } : item));
-                         }}
-                       />
-                     </div>
-                   ))}
-                   {tempBudgets.length === 0 && <p className="text-sm text-forest-400 text-center py-6">No active budgets found.</p>}
-                </div>
-              </div>
-            )}
-
-            {maximizedTab === 'statements' && (
-              <div className="max-w-6xl mx-auto space-y-6">
-                <h4 className="text-lg font-bold text-forest-900">Maximized Financial Statements & Reports</h4>
-                <div className="bg-white rounded-3xl border border-sand-200 p-6 shadow-sm space-y-6">
-                   <p className="text-sm text-forest-600">Export PDF or Excel statements, review analytics, and generate reports.</p>
-                   <div className="flex gap-4">
-                      <button
-                        onClick={() => { setExportFormat('pdf'); setShowExportModal(true); }}
-                        className="px-6 py-3 bg-forest-900 text-white font-bold rounded-2xl shadow-md hover:bg-forest-800 transition-all flex items-center gap-2"
-                      >
-                        <Download size={18} /> Export PDF Statement
-                      </button>
-                      <button
-                        onClick={() => { setExportFormat('excel'); setShowExportModal(true); }}
-                        className="px-6 py-3 bg-emerald-700 text-white font-bold rounded-2xl shadow-md hover:bg-emerald-600 transition-all flex items-center gap-2"
-                      >
-                        <Download size={18} /> Export Excel Statement
-                      </button>
-                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {activeTab === 'transactions' && (
         <div className="flex-1 flex flex-col min-h-0 space-y-6 pb-6">
