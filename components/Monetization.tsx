@@ -499,6 +499,11 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                   </>
                 ) : plan.id === SubscriptionPlan.BASIC ? (
                   <span>Included Free</span>
+                ) : plan.id === SubscriptionPlan.BUSINESS || plan.id === SubscriptionPlan.WINDOWS_BUSINESS ? (
+                  <>
+                    <span>Under Development</span>
+                    <Sparkles size={14} className="text-amber-300" />
+                  </>
                 ) : (
                   <>
                     <span>Upgrade to {plan.name}</span>
