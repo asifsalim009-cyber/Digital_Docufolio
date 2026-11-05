@@ -94,6 +94,8 @@ const Settings: React.FC<SettingsProps> = ({
 
 
   const handleSignOut = () => {
+    const confirmed = window.confirm("Are you sure you want to sign out of your vault session?");
+    if (!confirmed) return;
     signOut(auth).catch((error) => {
       console.error("Error signing out: ", error);
     });
