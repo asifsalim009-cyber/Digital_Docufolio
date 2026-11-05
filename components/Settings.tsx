@@ -802,28 +802,6 @@ const Settings: React.FC<SettingsProps> = ({
                       <span className="font-semibold text-forest-600">Package ID:</span>
                       <span className="font-mono text-forest-800 font-bold">com.docufolio.app</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-forest-600">AI Engine:</span>
-                      <span className="font-mono text-[10px] text-forest-700 truncate max-w-[180px]" title={getApiBaseUrl() || 'Relative /api'}>
-                        {getApiBaseUrl() || 'Auto (Cloud Run Server)'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2 border-t border-sand-200/60 flex flex-col gap-2">
-                    <button
-                      onClick={handleTestAiConnection}
-                      disabled={aiTestStatus.testing}
-                      className="w-full py-2 px-3 bg-forest-900 hover:bg-forest-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
-                    >
-                      {aiTestStatus.testing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} className="text-amber-400" />}
-                      <span>{aiTestStatus.testing ? 'Checking Connection...' : 'Test AI Backend Connectivity'}</span>
-                    </button>
-                    {aiTestStatus.result && (
-                      <p className={`text-[11px] font-semibold text-center ${aiTestStatus.success ? 'text-emerald-700' : 'text-red-600'}`}>
-                        {aiTestStatus.result}
-                      </p>
-                    )}
                   </div>
                 </div>
 
