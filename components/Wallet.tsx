@@ -9,7 +9,6 @@ import { createCalendarEvent } from '../googleCalendar';
 import { useVoiceSearch } from '../useVoiceSearch';
 import { uploadToGoogleDrive } from '../drive';
 import { apiFetch } from '../api';
-import { downloadFileHelper } from '../downloadFileHelper';
 
 interface WalletProps {
   profile?: UserProfile;
@@ -834,12 +833,13 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
     if (!newDoc.type || !newDoc.ownerName || !newDoc.files?.length) return;
 
     if (!skipDuplicateCheck) {
-      const existing = (documents || []).find(d =>
-        d.type === newDoc.type &&
-        d.ownerName.toLowerCase() === (newDoc.ownerName || '').toLowerCase() &&
-        ((d.documentNumber && newDoc.documentNumber && d.documentNumber === newDoc.documentNumber) ||
-         (d.customName && newDoc.customName && d.customName.toLowerCase() === (newDoc.customName || '').toLowerCase()))
-      );
+      const existing = (documents || []).find(d => {
+        const sameOwner = d.ownerName.toLowerCase() === (newDoc.ownerName || '').toLowerCase();
+        const sameRelation = d.relation === newDoc.relation;
+        const existingName = (d.customName || d.type).toLowerCase();
+        const newName = ((newDoc.customName || newDoc.type) || '').toLowerCase();
+        return sameOwner && sameRelation && existingName === newName;
+      });
 
       if (existing) {
         setDuplicateModalInfo({ existingDoc: existing, pendingDocData: newDoc });
@@ -1145,7 +1145,7 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
                        <button
                          onClick={(e) => {
                            e.stopPropagation();
-                           downloadFileHelper(doc.files[0].url, doc.files[0].name, doc.files[0].mimeType);
+                           handleDownload(doc.files[0].url, doc.files[0].name, doc.files[0].mimeType);
                          }}
                          className="bg-white/90 hover:bg-white text-forest-800 hover:text-emerald-600 backdrop-blur-md p-1.5 rounded-lg shadow-xs transition-all border border-sand-100"
                          title="Download"

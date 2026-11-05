@@ -6,7 +6,6 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { apiFetch } from '../api';
-import { downloadFileHelper } from '../downloadFileHelper';
 
 interface ExpendituresProps {
   profile?: UserProfile;
@@ -485,8 +484,7 @@ const Expenditures: React.FC<ExpendituresProps> = ({
         headStyles: { fillColor: [44, 94, 62] } // forest-800 approx
       });
 
-      const pdfOutput = doc.output('datauristring');
-      downloadFileHelper(pdfOutput, `Expenditure_Report_${titleRange.replace(/ /g, '_')}.pdf`, 'application/pdf');
+      doc.save(`Expenditure_Report_${titleRange.replace(/ /g, '_')}.pdf`);
     } else {
       // Excel
       const wsData: any[][] = [];
@@ -525,9 +523,7 @@ const Expenditures: React.FC<ExpendituresProps> = ({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Expenditures");
       
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-      const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${wbout}`;
-      downloadFileHelper(dataUrl, `Expenditure_Report_${titleRange.replace(/ /g, '_')}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      XLSX.writeFile(wb, `Expenditure_Report_${titleRange.replace(/ /g, '_')}.xlsx`);
     }
 
     setShowExportModal(false);
