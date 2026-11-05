@@ -1706,17 +1706,7 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
                                 {isScanning ? 'Scanning...' : 'AI Scan'}
                             </button>
                             
-                            {/* Voice Button */}
-                            <button 
-                                onClick={handleVoiceCommand}
-                                className={`
-                                  px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all shadow-lg
-                                  ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-white/20 hover:bg-white/30 backdrop-blur-md text-white'}
-                                `}
-                            >
-                                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-                                {isListening ? 'Listening...' : 'Hey Wallet'}
-                            </button>
+                            {/* Voice Button Removed */}
                        </div>
                        
                        {scanMessage && (
