@@ -367,8 +367,8 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Avatar Card */}
         <div className="lg:col-span-4 flex flex-col space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-sand-200">
-             <div className="relative group w-full aspect-square rounded-2xl overflow-hidden bg-sand-100 ring-1 ring-black/5">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-sand-200 flex flex-col items-center">
+             <div className="relative group w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-sand-100 ring-2 ring-forest-900/5 shadow-sm">
                 {(isEditing ? editForm.profileImage : profile.profileImage) ? (
                   <img 
                     src={isEditing ? editForm.profileImage : profile.profileImage} 
@@ -377,21 +377,21 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-sand-200 text-sand-400">
-                    <UserCircle size={64} />
+                    <UserCircle size={52} />
                   </div>
                 )}
                 {isEditing && (
-                  <div className="absolute inset-0 bg-forest-900/60 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-opacity opacity-0 group-hover:opacity-100">
-                    <label className="cursor-pointer flex flex-col items-center gap-2 text-white font-medium text-sm p-4 rounded-xl hover:bg-white/10 transition-colors">
-                      <Camera size={24} />
-                      <span>Change Photo</span>
+                  <div className="absolute inset-0 bg-forest-900/60 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-opacity opacity-0 group-hover:opacity-100">
+                    <label className="cursor-pointer flex flex-col items-center gap-1 text-white font-medium text-xs p-2 rounded-xl hover:bg-white/10 transition-colors">
+                      <Camera size={20} />
+                      <span>Change</span>
                       <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </label>
                   </div>
                 )}
              </div>
              
-             <div className="mt-6 text-center">
+             <div className="mt-4 text-center w-full">
                 {isEditing ? (
                    <div className="px-2">
                        <label className="block text-xs font-bold text-forest-400 uppercase tracking-wider mb-2 text-left">Nickname</label>
