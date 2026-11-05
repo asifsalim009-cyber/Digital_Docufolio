@@ -63,23 +63,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success'>('idle');
   const [showComparison, setShowComparison] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [showWindowsRedirectModal, setShowWindowsRedirectModal] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
-
-  const handleOpenInBrowser = () => {
-    window.open('https://aeroscankenya.co.ke/docufolio', '_blank');
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText('https://aeroscankenya.co.ke/docufolio');
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy', err);
-    }
-  };
 
   // Cloud & Mobile Plans
   const cloudPlans: PlanItem[] = [
@@ -136,7 +120,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
       name: "Pro Suite",
       badge: "Power Users & Families",
       badgeColor: "bg-sky-500/10 text-sky-600 border border-sky-500/20",
-      price: { monthly: "KES 500/mo", yearly: "KES 5,000/yr", monthlyNum: 500, yearlyNum: 5000 },
+      price: { monthly: "KES 1,000/mo", yearly: "KES 10,000/yr", monthlyNum: 1000, yearlyNum: 10000 },
       description: "Family & Others document vault, AI OCR scanner & up to 1,000 documents.",
       icon: <Sparkles className="text-sky-500" size={24} />,
       iconBg: "bg-sky-500/10 text-sky-600",
@@ -158,7 +142,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
       name: "Elite",
       badge: "Advanced Features",
       badgeColor: "bg-purple-500/10 text-purple-700 border border-purple-500/20",
-      price: { monthly: "KES 1,000/mo", yearly: "KES 10,000/yr", monthlyNum: 1000, yearlyNum: 10000 },
+      price: { monthly: "KES 2,000/mo", yearly: "KES 20,000/yr", monthlyNum: 2000, yearlyNum: 20000 },
       description: "Advanced analytics, multiple users, and specialized integrations.",
       icon: <Star className="text-purple-600" size={24} />,
       iconBg: "bg-purple-500/10 text-purple-700",
@@ -179,7 +163,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
       name: "Business",
       badge: "Commercial & Teams",
       badgeColor: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20",
-      price: { monthly: "KES 5,000/mo", yearly: "KES 50,000/yr", monthlyNum: 5000, yearlyNum: 50000 },
+      price: { monthly: "KES 7,000/mo", yearly: "KES 70,000/yr", monthlyNum: 7000, yearlyNum: 70000 },
       description: "Complete business compliance, employee records & asset management.",
       icon: <Briefcase className="text-emerald-600" size={24} />,
       iconBg: "bg-emerald-500/10 text-emerald-700",
@@ -249,11 +233,6 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
   const handleSelectPlan = (plan: PlanItem) => {
     if (plan.id === currentPlan) return;
     if (plan.id === SubscriptionPlan.BASIC) return;
-
-    if (plan.id === SubscriptionPlan.WINDOWS_INDIVIDUAL) {
-      setShowWindowsRedirectModal(true);
-      return;
-    }
 
     if (plan.id === SubscriptionPlan.BUSINESS || plan.id === SubscriptionPlan.WINDOWS_BUSINESS) {
       setShowUnderDevModal(true);
@@ -403,7 +382,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
               <button
-                onClick={() => setShowWindowsRedirectModal(true)}
+                onClick={() => setShowDownloadModal(true)}
                 className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white hover:bg-blue-50 text-blue-900 rounded-2xl font-bold text-sm shadow-lg transition-all transform hover:-translate-y-0.5"
               >
                 <Download size={18} className="text-blue-600" />
@@ -566,9 +545,9 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                   <th className="py-3 px-3 font-bold text-forest-900">Feature</th>
                   <th className="py-3 px-3 font-bold text-slate-600">Free</th>
                   <th className="py-3 px-3 font-bold text-amber-600">Premium (KES 300)</th>
-                  <th className="py-3 px-3 font-bold text-sky-600">Pro Suite (KES 500)</th>
-                  <th className="py-3 px-3 font-bold text-purple-600">Elite (KES 1,000)</th>
-                  <th className="py-3 px-3 font-bold text-emerald-700">Business (KES 5,000)</th>
+                  <th className="py-3 px-3 font-bold text-sky-600">Pro (KES 1,000)</th>
+                  <th className="py-3 px-3 font-bold text-purple-600">Elite (KES 2,000)</th>
+                  <th className="py-3 px-3 font-bold text-emerald-700">Business (KES 7,000)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand-100">
@@ -915,54 +894,6 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                 className="w-full py-3 mt-4 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-xl font-bold transition-all text-sm"
               >
                 Go Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Windows Redirect Modal */}
-      {showWindowsRedirectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative border border-blue-200 p-6 text-forest-900 space-y-4">
-            <button
-              onClick={() => setShowWindowsRedirectModal(false)}
-              className="absolute top-4 right-4 text-forest-400 hover:text-forest-900 p-2 rounded-full hover:bg-sand-100 transition-all z-10"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="text-center pt-2">
-              <div className="w-14 h-14 rounded-2xl bg-blue-600 mx-auto mb-3 flex items-center justify-center shadow-lg shadow-blue-600/25 text-white">
-                <Monitor size={28} />
-              </div>
-              <h3 className="text-xl font-display font-bold text-forest-900">Windows Desktop Portal</h3>
-              <p className="text-xs text-forest-500 mt-1 max-w-xs mx-auto">
-                Get the official Windows app and updates at <strong className="text-forest-800">aeroscankenya.co.ke/docufolio</strong>
-              </p>
-            </div>
-
-            {copySuccess && (
-              <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold text-center border border-emerald-200 animate-fadeIn">
-                ✓ Link copied to clipboard successfully!
-              </div>
-            )}
-
-            <div className="space-y-3 pt-2">
-              <button
-                onClick={handleOpenInBrowser}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-md shadow-blue-600/25 transition-all text-sm flex items-center justify-center gap-2"
-              >
-                <ArrowRight size={16} />
-                <span>Open Address in Browser</span>
-              </button>
-
-              <button
-                onClick={handleCopyLink}
-                className="w-full py-3.5 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-2xl font-bold transition-all text-sm flex items-center justify-center gap-2 border border-sand-200"
-              >
-                <FileText size={16} />
-                <span>Copy Link</span>
               </button>
             </div>
           </div>
