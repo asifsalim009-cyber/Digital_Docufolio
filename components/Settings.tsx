@@ -798,15 +798,11 @@ const Settings: React.FC<SettingsProps> = ({
                         {Capacitor.isNativePlatform() ? 'Android Native APK' : 'Web / PWA Application'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-forest-600">Package ID:</span>
-                      <span className="font-mono text-forest-800 font-bold">com.docufolio.app</span>
-                    </div>
                   </div>
                 </div>
 
                 <div className="text-xs font-medium text-forest-400 bg-sand-50 px-4 py-2 rounded-full border border-sand-200">
-                  Version 2.4.0 • Android Studio Ready
+                  Beta Version 1.0.2 • Digital DocuFolio
                 </div>
               </div>
             )}
