@@ -1465,83 +1465,113 @@ const Wallet: React.FC<WalletProps> = ({
 
                        {/* Form Fields */}
                        <div className="grid grid-cols-2 gap-4">
-                           <div className="col-span-2">
-                               <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Owner</label>
-                               <div className="flex gap-2">
-                                   <button 
-                                     onClick={() => setNewDoc(prev => ({ ...prev, relation: 'SELF', ownerName: 'Self' }))}
-                                     className={`flex-1 py-2 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation === 'SELF' ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300'}`}
-                                   >
-                                       Myself
-                                   </button>
-                                   <button 
-                                     onClick={() => {
-                                         if (!isProOrHigher) {
-                                             onNavigateToPlans();
-                                             return;
-                                         }
-                                         setNewDoc(prev => ({ ...prev, relation: RelationType.OTHER, ownerName: '' }));
-                                     }}
-                                     className={`flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation !== 'SELF' && newDoc.relation !== RelationType.BUSINESS ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300 hover:bg-sand-50'}`}
-                                   >
-                                       Someone Else
-                                       {!isProOrHigher && <Lock size={12} className="text-sand-400" />}
-                                   </button>
-                                   <button 
-                                     onClick={() => {
-                                         if (!isBusinessPlan) {
-                                             onNavigateToPlans();
-                                             return;
-                                         }
-                                         setNewDoc(prev => ({ ...prev, relation: RelationType.BUSINESS, ownerName: '' }))
-                                     }}
-                                     className={`flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation === RelationType.BUSINESS ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300 hover:bg-sand-50'}`}
-                                   >
-                                       Business
-                                       {!isBusinessPlan && <Lock size={12} className="text-sand-400" />}
-                                   </button>
+                           {activeCategory === 'PERSONAL' ? (
+                               <div className="col-span-2">
+                                   <div className="flex items-center justify-between mb-1">
+                                     <label className="block text-xs font-bold text-forest-500 uppercase">
+                                       Document Holder Name
+                                     </label>
+                                     <span className="text-[10px] text-forest-400 font-medium">
+                                       Profile: {profile?.fullName || 'Self'}
+                                     </span>
+                                   </div>
+                                   <input 
+                                     className="w-full bg-white border border-sand-300 rounded-lg p-2.5 text-sm text-forest-900 focus:outline-none focus:border-gold-500 font-medium"
+                                     placeholder={profile?.fullName || "Your Full Name"}
+                                     value={newDoc.ownerName === 'Self' ? (profile?.fullName || 'Self') : (newDoc.ownerName || '')}
+                                     onChange={(e) => setNewDoc(prev => ({ ...prev, ownerName: e.target.value }))}
+                                   />
+                                   {newDoc.ownerName && newDoc.ownerName !== 'Self' && !isDocumentOwnerProfile(newDoc.ownerName, profile) && (
+                                     <p className="mt-1.5 text-[11px] text-amber-800 font-medium bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                                       <AlertCircle size={13} className="text-amber-600 shrink-0" />
+                                       <span>Name does not match your profile. This document will be automatically routed to <strong>Someone Else</strong> vault.</span>
+                                     </p>
+                                   )}
                                </div>
-                           </div>
+                           ) : (
+                               <>
+                                   <div className="col-span-2">
+                                       <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Owner Category</label>
+                                       <div className="flex gap-2">
+                                           <button 
+                                             type="button"
+                                             onClick={() => setNewDoc(prev => ({ ...prev, relation: 'SELF', ownerName: 'Self' }))}
+                                             className={`flex-1 py-2 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation === 'SELF' ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300'}`}
+                                           >
+                                               Myself
+                                           </button>
+                                           <button 
+                                             type="button"
+                                             onClick={() => {
+                                                 if (!isProOrHigher) {
+                                                     onNavigateToPlans();
+                                                     return;
+                                                 }
+                                                 setNewDoc(prev => ({ ...prev, relation: RelationType.OTHER, ownerName: '' }));
+                                             }}
+                                             className={`flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation !== 'SELF' && newDoc.relation !== RelationType.BUSINESS ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300 hover:bg-sand-50'}`}
+                                           >
+                                               Someone Else
+                                               {!isProOrHigher && <Lock size={12} className="text-sand-400" />}
+                                           </button>
+                                           <button 
+                                             type="button"
+                                             onClick={() => {
+                                                 if (!isBusinessPlan) {
+                                                     onNavigateToPlans();
+                                                     return;
+                                                 }
+                                                 setNewDoc(prev => ({ ...prev, relation: RelationType.BUSINESS, ownerName: '' }))
+                                             }}
+                                             className={`flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-[11px] sm:text-sm font-bold border transition-all ${newDoc.relation === RelationType.BUSINESS ? 'bg-forest-900 text-white border-forest-900' : 'bg-white text-forest-600 border-sand-300 hover:bg-sand-50'}`}
+                                           >
+                                               Business
+                                               {!isBusinessPlan && <Lock size={12} className="text-sand-400" />}
+                                           </button>
+                                       </div>
+                                   </div>
 
-                           {newDoc.relation === 'SELF' ? (
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-bold text-forest-500 uppercase mb-1">
-                                      Document Holder / Your Name
-                                    </label>
-                                    <input 
-                                      className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
-                                      placeholder={profile?.fullName || "Your Full Name"}
-                                      value={newDoc.ownerName === 'Self' ? (profile?.fullName || 'Self') : (newDoc.ownerName || '')}
-                                      onChange={(e) => setNewDoc(prev => ({ ...prev, ownerName: e.target.value }))}
-                                    />
-                                </div>
-                            ) : (
-                                <div className="col-span-2 space-y-3 p-3 bg-sand-50 rounded-xl border border-sand-200">
-                                    {newDoc.relation !== RelationType.BUSINESS && (
-                                      <div>
-                                          <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Relation</label>
-                                          <select 
-                                            className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
-                                            value={newDoc.relation}
-                                            onChange={(e) => setNewDoc(prev => ({ ...prev, relation: e.target.value as RelationType }))}
-                                          >
-                                              {RELATIONS_LIST.filter(r => r !== RelationType.BUSINESS).map(r => <option key={r} value={r}>{r}</option>)}
-                                          </select>
-                                      </div>
-                                    )}
-                                    <div>
-                                        <label className="block text-xs font-bold text-forest-500 uppercase mb-1">
-                                          {newDoc.relation === RelationType.BUSINESS ? 'Business Name' : 'Full Name'}
-                                        </label>
-                                        <input 
-                                          className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
-                                          placeholder={newDoc.relation === RelationType.BUSINESS ? "e.g. Acme Corp" : "e.g. John Doe"}
-                                          value={newDoc.ownerName}
-                                          onChange={(e) => setNewDoc(prev => ({ ...prev, ownerName: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                            )}
+                                   {newDoc.relation === 'SELF' ? (
+                                        <div className="col-span-2">
+                                            <label className="block text-xs font-bold text-forest-500 uppercase mb-1">
+                                              Document Holder / Your Name
+                                            </label>
+                                            <input 
+                                              className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                                              placeholder={profile?.fullName || "Your Full Name"}
+                                              value={newDoc.ownerName === 'Self' ? (profile?.fullName || 'Self') : (newDoc.ownerName || '')}
+                                              onChange={(e) => setNewDoc(prev => ({ ...prev, ownerName: e.target.value }))}
+                                            />
+                                        </div>
+                                   ) : (
+                                        <div className="col-span-2 space-y-3 p-3 bg-sand-50 rounded-xl border border-sand-200">
+                                            {newDoc.relation !== RelationType.BUSINESS && (
+                                              <div>
+                                                  <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Relation</label>
+                                                  <select 
+                                                    className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                                                    value={newDoc.relation}
+                                                    onChange={(e) => setNewDoc(prev => ({ ...prev, relation: e.target.value as RelationType }))}
+                                                  >
+                                                      {RELATIONS_LIST.filter(r => r !== RelationType.BUSINESS).map(r => <option key={r} value={r}>{r}</option>)}
+                                                  </select>
+                                              </div>
+                                            )}
+                                            <div>
+                                                <label className="block text-xs font-bold text-forest-500 uppercase mb-1">
+                                                  {newDoc.relation === RelationType.BUSINESS ? 'Business Name' : 'Full Name'}
+                                                </label>
+                                                <input 
+                                                  className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                                                  placeholder={newDoc.relation === RelationType.BUSINESS ? "e.g. Acme Corp" : "e.g. John Doe"}
+                                                  value={newDoc.ownerName}
+                                                  onChange={(e) => setNewDoc(prev => ({ ...prev, ownerName: e.target.value }))}
+                                                />
+                                            </div>
+                                        </div>
+                                   )}
+                               </>
+                           )}
 
                             <div className="col-span-2">
                                <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Document Type</label>
