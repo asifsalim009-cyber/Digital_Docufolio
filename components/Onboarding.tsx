@@ -166,12 +166,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         {currentStep === 0 && (
           /* Welcome Screen */
           <div className="space-y-6 animate-fadeIn">
-            <div className="w-28 h-28 mx-auto relative flex items-center justify-center">
+            <div className="w-32 h-32 mx-auto relative flex items-center justify-center p-4 bg-gradient-to-tr from-cyan-500/25 via-blue-600/35 to-sky-400/25 backdrop-blur-2xl rounded-[2.5rem] border border-white/30 shadow-[0_0_50px_rgba(0,210,255,0.35)]">
+              <div className="absolute inset-0 rounded-[2.5rem] bg-cyan-500/15 animate-pulse" />
               <img
                 src="/splash_logo.png"
                 alt="Digital DocuFolio Logo"
                 onError={(e) => { e.currentTarget.src = 'https://lh3.googleusercontent.com/d/1P5lYaVSTowpvW3Ys5zO1GfwG06l1AJkV'; }}
-                className="w-full h-full object-contain drop-shadow-[0_10px_25px_rgba(0,210,255,0.3)] animate-pulse"
+                className="w-full h-full object-contain drop-shadow-[0_15px_35px_rgba(0,210,255,0.5)] relative z-10"
               />
             </div>
 
