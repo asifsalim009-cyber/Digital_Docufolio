@@ -367,8 +367,8 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Avatar Card */}
         <div className="lg:col-span-4 flex flex-col space-y-6">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-sand-200 flex flex-col items-center">
-             <div className="relative group w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-sand-100 ring-4 ring-forest-900/5 shadow-md">
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl shadow-xs border border-sand-200 flex flex-col items-center">
+             <div className="relative group w-16 h-16 sm:w-18 sm:h-18 rounded-full overflow-hidden bg-sand-100 ring-2 ring-forest-900/5 shadow-xs">
                 {(isEditing ? editForm.profileImage : profile.profileImage) ? (
                   <img 
                     src={isEditing ? editForm.profileImage : profile.profileImage} 
@@ -377,50 +377,50 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-sand-200 text-sand-400">
-                    <UserCircle size={44} />
+                    <UserCircle size={36} />
                   </div>
                 )}
                 {isEditing && (
-                  <div className="absolute inset-0 bg-forest-900/60 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-opacity opacity-0 group-hover:opacity-100">
-                    <label className="cursor-pointer flex flex-col items-center gap-0.5 text-white font-medium text-[10px] p-1.5 rounded-full hover:bg-white/10 transition-colors">
-                      <Camera size={16} />
-                      <span>Change</span>
+                  <div className="absolute inset-0 bg-forest-900/60 backdrop-blur-2xs flex items-center justify-center cursor-pointer transition-opacity opacity-0 group-hover:opacity-100">
+                    <label className="cursor-pointer flex flex-col items-center text-white font-medium text-[9px] p-1 rounded-full hover:bg-white/10 transition-colors">
+                      <Camera size={14} />
+                      <span>Edit</span>
                       <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </label>
                   </div>
                 )}
              </div>
              
-             <div className="mt-4 text-center w-full">
+             <div className="mt-2.5 text-center w-full">
                 {isEditing ? (
-                   <div className="px-2">
-                       <label className="block text-xs font-bold text-forest-400 uppercase tracking-wider mb-2 text-left">Nickname</label>
+                   <div className="px-1">
+                       <label className="block text-[11px] font-bold text-forest-400 uppercase tracking-wider mb-1 text-left">Nickname</label>
                        <input 
                          type="text" 
                          value={editForm.nickName}
                          onChange={(e) => handleChange('nickName', e.target.value)}
-                         className="w-full bg-sand-50 border border-sand-300 p-2.5 rounded-lg text-forest-900 focus:outline-none focus:border-gold-500 transition-colors text-center font-bold text-lg"
+                         className="w-full bg-sand-50 border border-sand-300 p-2 rounded-lg text-forest-900 focus:outline-none focus:border-gold-500 transition-colors text-center font-bold text-sm"
                          placeholder="Nickname"
                        />
                    </div>
                 ) : (
                    <div>
-                       <h3 className="text-2xl font-bold text-forest-900 tracking-tight">{profile.fullName}</h3>
-                       <p className="text-gold-600 font-medium">@{profile.nickName}</p>
-                       <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-                           <div className="inline-flex px-3 py-1 bg-sky-50 text-sky-600 border border-sky-100 rounded-full text-xs font-bold uppercase tracking-wider items-center gap-1.5 shadow-sm">
-                               <Shield size={14} className="text-sky-500" />
+                       <h3 className="text-lg sm:text-xl font-bold text-forest-900 tracking-tight leading-tight">{profile.fullName}</h3>
+                       <p className="text-gold-600 font-medium text-xs">@{profile.nickName}</p>
+                       <div className="mt-2 flex flex-wrap items-center justify-center gap-1">
+                           <div className="inline-flex px-2 py-0.5 bg-sky-50 text-sky-600 border border-sky-100 rounded-full text-[10px] font-bold uppercase tracking-wider items-center gap-1 shadow-2xs">
+                               <Shield size={11} className="text-sky-500" />
                                {profile.plan || 'Basic Vault'}
                            </div>
-                           <div className="inline-flex px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-[11px] font-bold items-center gap-1 shadow-xs" title="Client-side AES-256-GCM authenticated encryption active">
-                               <ShieldCheck size={13} className="text-emerald-600" />
+                           <div className="inline-flex px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-[10px] font-bold items-center gap-1 shadow-2xs" title="Client-side AES-256-GCM authenticated encryption active">
+                               <ShieldCheck size={11} className="text-emerald-600" />
                                <span>AES-256 Encrypted</span>
                            </div>
                        </div>
-                       <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-sand-50 border border-sand-200 rounded-lg text-[11px] text-forest-600 font-medium">
+                       <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-sand-50 border border-sand-200 rounded-md text-[10px] text-forest-600 font-medium">
                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                           <Lock size={11} className="text-emerald-600" />
-                           <span>Vault Encryption Active • Zero-Knowledge</span>
+                           <Lock size={10} className="text-emerald-600" />
+                           <span>Vault Active • Zero-Knowledge</span>
                        </div>
                    </div>
                 )}
