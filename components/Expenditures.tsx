@@ -285,12 +285,20 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   const handleSaveExpense = () => {
     if (parsedData && parsedData.reference && parsedData.amount) {
       const recipient = (parsedData.recipient || '').toLowerCase();
-      const matchedBudget = (budgets || []).find(b => recipient.includes(b.category.toLowerCase()) || (parsedData.paymentFor || '').toLowerCase().includes(b.category.toLowerCase()));
+      const paymentFor = (parsedData.paymentFor || '').toLowerCase();
+
+      const matchedBudget = (budgets || []).find(b => recipient.includes(b.category.toLowerCase()) || paymentFor.includes(b.category.toLowerCase()));
+      const matchedRecurring = (recurringExpenses || []).find(r => recipient.includes(r.name.toLowerCase()) || paymentFor.includes(r.name.toLowerCase()));
 
       if (matchedBudget) {
         const confirmed = window.confirm(`Is this payment for your "${matchedBudget.category}" budget?`);
         if (confirmed && !parsedData.paymentFor) {
            parsedData.paymentFor = matchedBudget.category;
+        }
+      } else if (matchedRecurring) {
+        const confirmed = window.confirm(`Would you like to link this transaction to your recurring budget/expense "${matchedRecurring.name}"?`);
+        if (confirmed && !parsedData.paymentFor) {
+           parsedData.paymentFor = matchedRecurring.name;
         }
       }
 
@@ -800,22 +808,24 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                            </div>
                            <button
                              onClick={() => {
-                               const confirmed = window.confirm(`Mark "${r.name}" as paid? This will log an expenditure transaction of Ksh ${r.amount.toLocaleString()}.`);
-                               if (confirmed) {
-                                 onAddExpenditure({
-                                   amount: r.amount,
-                                   recipient: r.name,
-                                   date: new Date().toISOString().split('T')[0],
-                                   reference: 'RECURRING-' + Math.floor(Math.random()*10000),
-                                   rawMessage: `Recurring payment for ${r.name}`,
-                                   paymentFor: r.name,
-                                   paymentMethod: 'Bank / M-PESA',
-                                   type: 'expense'
-                                 });
-                               }
+                               setAddMode('manual');
+                               setParsedData({
+                                 date: new Date().toISOString().split('T')[0],
+                                 time: '',
+                                 recipient: r.name,
+                                 amount: r.amount,
+                                 paymentMethod: 'M-PESA / Bank',
+                                 reference: 'RECURRING-' + Math.floor(Math.random()*10000),
+                                 rawMessage: `Recurring payment for ${r.name}`,
+                                 paymentFor: r.name,
+                                 type: 'expense'
+                               });
+                               setRawMessage('');
+                               setParseError('');
+                               setIsAdding(true);
                              }}
                              className="px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-lg transition-colors border border-emerald-200 shadow-xs"
-                             title="Mark as Paid and Add Transaction"
+                             title="Open transaction details to pay"
                            >
                              Pay
                            </button>
