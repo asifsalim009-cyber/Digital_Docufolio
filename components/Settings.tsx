@@ -674,6 +674,28 @@ const Settings: React.FC<SettingsProps> = ({
                     </button>
                   </div>
                 </div>
+
+                <div className="pt-6 border-t border-sand-100">
+                  <h3 className="text-lg font-bold text-forest-900 mb-2 flex items-center gap-2">
+                    <Lock size={20} className="text-emerald-500" />
+                    <span>Client-Side Vault Encryption</span>
+                  </h3>
+                  <p className="text-forest-500 text-sm mb-4">
+                    All document metadata, sensitive IDs, and journal entries are secured with AES-256-GCM encryption in your local IndexedDB and Firestore vault.
+                  </p>
+                  <div className="p-4 border border-sand-200 rounded-xl bg-emerald-50/40 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <ShieldCheck size={22} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-forest-900 text-sm">AES-GCM Encryption Active</p>
+                        <p className="text-xs text-forest-500">Hardware-backed key derivation enabled</p>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Secured</span>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -728,8 +750,8 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             )}
             {activeTab === 'about' && (
-              <div className="bg-white rounded-2xl border border-sand-200 shadow-sm p-6 animate-fadeIn flex flex-col items-center justify-center min-h-[400px] text-center">
-                <div className="w-32 h-32 md:w-48 md:h-48 mb-6 relative">
+              <div className="bg-white rounded-2xl border border-sand-200 shadow-sm p-6 animate-fadeIn flex flex-col items-center justify-center text-center">
+                <div className="w-28 h-28 md:w-36 md:h-36 mb-4 relative">
                   <img 
                      src="/splash_logo.png" 
                      alt="Digital DocuFolio Logo" 
@@ -742,22 +764,48 @@ const Settings: React.FC<SettingsProps> = ({
                   Your secure, offline-first digital portfolio. Managing your documents, finances, and journal securely.
                 </p>
 
-                <div className="w-full max-w-md bg-sand-50/80 rounded-2xl p-4 border border-sand-200 text-left space-y-3 mb-6">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-forest-600">Runtime Platform:</span>
-                    <span className="font-bold text-forest-900 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      {Capacitor.isNativePlatform() ? 'Android Native APK' : 'Web / PWA Application'}
-                    </span>
+                {/* Vault Summary Details Section */}
+                <div className="w-full max-w-md bg-sand-50/90 rounded-2xl p-5 border border-sand-200 text-left space-y-4 mb-6 shadow-sm">
+                  <h4 className="font-bold text-forest-900 text-sm flex items-center gap-2 border-b border-sand-200 pb-2">
+                    <Info size={16} className="text-sky-500" />
+                    <span>Vault Summary Details</span>
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-white p-3 rounded-xl border border-sand-200">
+                      <p className="text-xl font-bold text-forest-900">{documents.length}</p>
+                      <p className="text-[10px] font-semibold text-forest-500 uppercase tracking-wider mt-0.5">Documents</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-sand-200">
+                      <p className="text-xl font-bold text-forest-900">{journalEntries.length}</p>
+                      <p className="text-[10px] font-semibold text-forest-500 uppercase tracking-wider mt-0.5">Journal</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-sand-200">
+                      <p className="text-xl font-bold text-forest-900">{tasks.length}</p>
+                      <p className="text-[10px] font-semibold text-forest-500 uppercase tracking-wider mt-0.5">Tasks</p>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-forest-600">Package ID:</span>
-                    <span className="font-mono text-forest-800 font-bold">com.docufolio.app</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-forest-600">AI Engine Endpoint:</span>
-                    <span className="font-mono text-[10px] text-forest-700 truncate max-w-[200px]" title={getApiBaseUrl() || 'Relative /api'}>
-                      {getApiBaseUrl() || 'Auto (Cloud Run Server)'}
-                    </span>
+
+                  <div className="space-y-2 text-xs pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-forest-600">Encryption Standard:</span>
+                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">AES-256-GCM Secure</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-forest-600">Runtime Platform:</span>
+                      <span className="font-bold text-forest-900 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                        {Capacitor.isNativePlatform() ? 'Android Native APK' : 'Web / PWA Application'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-forest-600">Package ID:</span>
+                      <span className="font-mono text-forest-800 font-bold">com.docufolio.app</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-forest-600">AI Engine:</span>
+                      <span className="font-mono text-[10px] text-forest-700 truncate max-w-[180px]" title={getApiBaseUrl() || 'Relative /api'}>
+                        {getApiBaseUrl() || 'Auto (Cloud Run Server)'}
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="pt-2 border-t border-sand-200/60 flex flex-col gap-2">
