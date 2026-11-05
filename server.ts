@@ -62,8 +62,8 @@ function normalizeToIsoDate(dateStr: string): string {
 }
 
 const generateContentWithRetry = async (ai: any, primaryModel: string, params: any) => {
-  // Stable, high-capacity models queue. gemini-1.5-flash & gemini-2.0-flash have very high availability.
-  const modelQueue = Array.from(new Set([primaryModel, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b', 'gemini-2.5-flash'])).filter(Boolean);
+  // Valid, modern, high-capacity models queue according to current Gemini SDK guidelines.
+  const modelQueue = Array.from(new Set([primaryModel, 'gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'])).filter(Boolean);
   let lastError: any = null;
 
   for (const model of modelQueue) {
