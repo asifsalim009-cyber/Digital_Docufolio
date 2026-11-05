@@ -373,6 +373,9 @@ const Profile: React.FC<ProfileProps> = ({ profile, onUpdateProfile, onUseAiCred
                   <img 
                     src={isEditing ? editForm.profileImage : profile.profileImage} 
                     alt="Profile" 
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                     className="w-full h-full object-cover"
                   />
                 ) : (

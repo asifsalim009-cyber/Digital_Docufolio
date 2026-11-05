@@ -509,7 +509,14 @@ const App: React.FC = () => {
           <div className="flex justify-between items-center mb-4 px-2">
             <div className="flex items-center gap-3">
                 {profile.profileImage ? (
-                  <img src={profile.profileImage} alt="Profile" className="w-10 h-10 rounded-full object-cover ring-2 ring-sky-400/30 shadow-md" />
+                  <img
+                    src={profile.profileImage}
+                    alt="Profile"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-sky-400/30 shadow-md"
+                  />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-slate-800 text-sky-400 flex items-center justify-center ring-2 ring-sky-400/20 shadow-sm">
                     <UserIcon size={20} />
