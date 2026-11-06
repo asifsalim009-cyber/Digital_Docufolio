@@ -9,6 +9,7 @@ import { createCalendarEvent } from '../googleCalendar';
 import { useVoiceSearch } from '../useVoiceSearch';
 import { uploadToGoogleDrive } from '../drive';
 import { apiFetch } from '../api';
+import { downloadFileHelper } from '../downloadFileHelper';
 
 interface WalletProps {
   profile?: UserProfile;
@@ -110,13 +111,8 @@ const Wallet: React.FC<WalletProps> = ({ profile, onUseAiCredit, documents, curr
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [activeCategory, setActiveCategory] = useState<'PERSONAL' | 'OTHERS' | 'BUSINESS'>('PERSONAL');
 
-  const handleDownload = (url: string, name: string, _mimeType?: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name || 'document';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = (url: string, name: string, mimeType?: string) => {
+    downloadFileHelper(url, name, mimeType || 'application/octet-stream');
   };
 
   const handleDriveUpload = async (url: string, name: string, mimeType?: string) => {
