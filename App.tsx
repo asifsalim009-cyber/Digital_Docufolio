@@ -13,6 +13,7 @@ import Expenditures from './components/Expenditures';
 import { Bell, LogIn, Mail, Sparkles, X, CheckCircle2, ShieldAlert, Fingerprint, ChevronRight, ScanFace, Lock, Delete, LogOut, Maximize, Minimize, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
 import { AuthScreen } from './components/AuthScreen';
 import { SplashScreen } from './components/SplashScreen';
+import { Onboarding } from './components/Onboarding';
 import { initDB, getOfflineDocuments, saveOfflineDocument, deleteOfflineDocument, queueSyncAction, processSyncQueue } from './idbSync';
 import { ViewOnceViewer } from './components/ViewOnceViewer';
 import { BiometricLock } from './components/BiometricLock';
@@ -61,6 +62,9 @@ const App: React.FC = () => {
     return urlParams.get('shareToken') || urlParams.get('token') || urlParams.get('viewOnce') || null;
   });
   const [showSplash, setShowSplash] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
+    return localStorage.getItem('folio_onboarding_done') === 'true';
+  });
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   // App State
@@ -155,6 +159,11 @@ const App: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+  useEffect(() => {
+    if (user) {
+      setCurrentView(AppView.PROFILE);
+    }
+  }, [user]);
   useEffect(() => {
     if (!user) return;
     const profileUnsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
@@ -487,6 +496,9 @@ const App: React.FC = () => {
       />
     );
   }
+  if (!hasCompletedOnboarding) {
+    return <Onboarding onComplete={() => setHasCompletedOnboarding(true)} />;
+  }
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
@@ -553,7 +565,14 @@ const App: React.FC = () => {
           <div className="flex justify-between items-center mb-4 px-2">
             <div className="flex items-center gap-3">
                 {profile.profileImage ? (
-                  <img src={profile.profileImage} alt="Profile" className="w-10 h-10 rounded-full object-cover ring-2 ring-sky-400/30 shadow-md" />
+                  <img
+                    src={profile.profileImage}
+                    alt="Profile"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-sky-400/30 shadow-md"
+                  />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-slate-800 text-sky-400 flex items-center justify-center ring-2 ring-sky-400/20 shadow-sm">
                     <UserIcon size={20} />
@@ -567,14 +586,6 @@ const App: React.FC = () => {
                 </div>
             </div>
             <div className="flex items-center gap-3 ml-auto">
-                {/* Fullscreen Toggle */}
-                <button
-                    onClick={toggleFullscreen}
-                    className="p-2.5 bg-slate-900/80 border border-white/10 rounded-xl text-slate-300 hover:text-sky-300 hover:border-sky-400/40 shadow-sm transition-all backdrop-blur-md"
-                    title="Toggle Fullscreen"
-                >
-                    {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
-                </button>
                 {/* Settings Toggle */}
                 <button
                     onClick={() => setCurrentView(AppView.SETTINGS)}
@@ -695,9 +706,15 @@ const App: React.FC = () => {
                    tasks={tasks}
                    isFullscreen={isFullscreen}
                    onToggleFullscreen={toggleFullscreen}
-                   onUpgrade={(plan) => handleUpdateProfile({ ...profile, plan, subscriptionStatus: "active", lastPaymentDate: new Date().toISOString() })}
+                   onUpgrade={(plan) => {
+                     handleUpdateProfile({ ...profile, plan, subscriptionStatus: "active", lastPaymentDate: new Date().toISOString() });
+                     setTimeout(() => {
+                       window.location.reload();
+                     }, 800);
+                   }}
                    onUpdateProfile={handleUpdateProfile}
                    onReplayTutorial={() => setRunTutorial(true)}
+                   onRevisitOnboarding={() => setHasCompletedOnboarding(false)}
                  />
                )}
                {currentView === AppView.EXPENDITURES && (
