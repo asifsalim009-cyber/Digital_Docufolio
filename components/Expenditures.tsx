@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Expenditure, Budget, RecurringExpense, UserProfile, SubscriptionPlan } from '../types';
-import { Receipt, Search, Plus, Save, X, Calendar, Hash, CheckCircle, AlertCircle, Upload, PieChart, FileText, Camera, Loader2, Trash, Download, Lock, Mic, MicOff, Sparkles, Bot, Repeat } from 'lucide-react';
+import { Receipt, Search, Plus, Save, X, Calendar, Hash, CheckCircle, AlertCircle, Upload, PieChart, FileText, Camera, Loader2, Trash, Download, Lock, Mic, MicOff, Sparkles, Bot, Repeat, ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { useVoiceSearch } from '../useVoiceSearch';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -63,6 +63,13 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   const [aiQuery, setAiQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+
+  // Mobile Collapsible & Enlarged View States
+  const [isMobileEnlarged, setIsMobileEnlarged] = useState(false);
+  const [isBalanceCollapsed, setIsBalanceCollapsed] = useState(false);
+  const [isBudgetsCollapsed, setIsBudgetsCollapsed] = useState(false);
+  const [isRecurringCollapsed, setIsRecurringCollapsed] = useState(false);
+  const [isStatementControlsCollapsed, setIsStatementControlsCollapsed] = useState(false);
 
   const paymentForSuggestions = useMemo(() => {
     return Array.from(new Set(expenditures.map(e => e.paymentFor).filter(Boolean))) as string[];
@@ -530,32 +537,43 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col animate-fadeIn relative p-2">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h2 className="text-3xl font-display font-bold text-forest-900 mb-1">Finances</h2>
-          <p className="text-forest-500 text-sm">Track expenses, budgets, and statements.</p>
+    <div className={`h-full flex flex-col animate-fadeIn relative p-2 ${isMobileEnlarged ? 'fixed inset-0 z-40 bg-sand-50/98 backdrop-blur-md p-3 sm:p-6 overflow-y-auto' : ''}`}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <div className="flex justify-between items-center w-full sm:w-auto">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-forest-900 mb-0.5 sm:mb-1">Finances</h2>
+            <p className="text-forest-500 text-xs sm:text-sm">Track expenses, budgets, and statements.</p>
+          </div>
+          {/* Mobile Enlarge / Collapse View Button */}
+          <button
+            onClick={() => setIsMobileEnlarged(!isMobileEnlarged)}
+            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-forest-900 text-white rounded-xl text-xs font-bold shadow-md hover:bg-gold-600 transition-all shrink-0"
+            title={isMobileEnlarged ? "Collapse to standard view" : "Enlarge view on mobile"}
+          >
+            {isMobileEnlarged ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            <span>{isMobileEnlarged ? "Collapse" : "Enlarge View"}</span>
+          </button>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           <button 
             onClick={() => { setShowAiModal(true); setAiQuery(''); setAiAnswer(null); }}
-            className="bg-gold-50 hover:bg-gold-100 text-gold-700 px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-colors border border-gold-200 shrink-0 shadow-sm"
+            className="bg-gold-50 hover:bg-gold-100 text-gold-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors border border-gold-200 shrink-0 shadow-xs"
             title="Ask AI about your finances"
           >
-            <Sparkles size={18} />
-            <span className="hidden sm:inline">Ask AI</span>
+            <Sparkles size={16} />
+            <span>Ask AI</span>
           </button>
           <button 
             onClick={() => setShowExportModal(true)}
-            className="bg-sand-100 hover:bg-sand-200 text-forest-700 px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-colors shrink-0"
+            className="bg-sand-100 hover:bg-sand-200 text-forest-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors shrink-0"
             title="Download Report"
           >
-            <Download size={18} />
-            <span className="hidden sm:inline">Export</span>
+            <Download size={16} />
+            <span>Export</span>
           </button>
           <button 
             onClick={() => { setIsAdding(true); setRawMessage(''); setParsedData(null); setParseError(''); }}
-            className="bg-gold-500 hover:bg-gold-600 text-forest-900 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors shrink-0"
+            className="bg-gold-500 hover:bg-gold-600 text-forest-900 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
           >
             <Plus size={16} />
             <span>Add Transaction</span>
@@ -563,14 +581,14 @@ const Expenditures: React.FC<ExpendituresProps> = ({
         </div>
       </div>
 
-      <div className="flex border-b border-sand-200 mb-6 space-x-6">
+      <div className="flex border-b border-sand-200 mb-4 sm:mb-6 space-x-4 sm:space-x-6">
         {(['transactions', 'budget', 'statements'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-3 text-sm font-medium transition-colors relative capitalize ${activeTab === tab ? 'text-forest-900' : 'text-forest-400 hover:text-forest-600'}`}
+            className={`pb-3 text-sm sm:text-base font-bold transition-colors relative capitalize flex items-center gap-1.5 ${activeTab === tab ? 'text-forest-900' : 'text-forest-400 hover:text-forest-600'}`}
           >
-            {tab}
+            <span>{tab}</span>
             {activeTab === tab && (
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-forest-900 rounded-t-full"></span>
             )}
@@ -579,34 +597,64 @@ const Expenditures: React.FC<ExpendituresProps> = ({
       </div>
 
       {activeTab === 'transactions' && (
-        <div className="flex-1 flex flex-col min-h-0 space-y-6 pb-6">
+        <div className="flex-1 flex flex-col min-h-0 space-y-4 sm:space-y-6 pb-6">
           
-          {/* Ledger Dashboard */}
-          <div className="bg-gradient-to-br from-forest-900 to-forest-800 rounded-3xl p-6 sm:p-8 shadow-xl text-white relative overflow-hidden flex flex-col sm:flex-row justify-between sm:items-end gap-6">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-               <PieChart size={120} />
+          {/* Collapsible Ledger Dashboard on Mobile */}
+          <div className="bg-gradient-to-br from-forest-900 to-forest-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl text-white relative overflow-hidden transition-all duration-300">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <p className="text-forest-200 text-xs sm:text-sm uppercase tracking-widest font-bold">Net Ledger Balance</p>
+                <span className="text-[10px] bg-white/10 text-forest-200 px-2 py-0.5 rounded-full font-mono">
+                  {filteredExpenditures.length} txns
+                </span>
+              </div>
+              {/* Collapsible Button */}
+              <button
+                onClick={() => setIsBalanceCollapsed(!isBalanceCollapsed)}
+                className="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-lg transition-colors border border-white/10 font-semibold"
+                title={isBalanceCollapsed ? "Expand balance breakdown" : "Collapse balance breakdown for larger list view"}
+              >
+                <span>{isBalanceCollapsed ? "Show Breakdown" : "Collapse"}</span>
+                {isBalanceCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              </button>
             </div>
-            <div className="relative z-10 flex-1">
-               <p className="text-forest-200 text-sm uppercase tracking-widest font-bold mb-2">Net Ledger Balance</p>
-               <h3 className="text-4xl sm:text-5xl font-display font-light">
-                 <span className="text-forest-300 text-2xl sm:text-3xl pr-1">Ksh</span>
-                 <span className="font-bold">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-               </h3>
-            </div>
-            
-            <div className="relative z-10 flex gap-6 sm:gap-10 border-t sm:border-t-0 sm:border-l border-forest-700 pt-4 sm:pt-0 sm:pl-10">
-               <div>
-                  <p className="text-forest-400 text-xs uppercase tracking-wider font-bold mb-1">Income</p>
-                  <p className="text-lg font-medium text-emerald-400">+{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-               </div>
-               <div>
-                  <p className="text-forest-400 text-xs uppercase tracking-wider font-bold mb-1">Expenses</p>
-                  <p className="text-lg font-medium text-rose-400">-{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-               </div>
-            </div>
+
+            {!isBalanceCollapsed ? (
+              <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 sm:gap-6 pt-1 animate-fadeIn">
+                <div className="relative z-10 flex-1">
+                   <h3 className="text-3xl sm:text-5xl font-display font-light">
+                     <span className="text-forest-300 text-xl sm:text-3xl pr-1">Ksh</span>
+                     <span className="font-bold">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                   </h3>
+                </div>
+                
+                <div className="relative z-10 flex gap-4 sm:gap-10 border-t sm:border-t-0 sm:border-l border-forest-700/60 pt-3 sm:pt-0 sm:pl-10">
+                   <div className="flex-1 sm:flex-initial bg-white/5 sm:bg-transparent p-2.5 sm:p-0 rounded-xl">
+                      <p className="text-forest-400 text-[10px] sm:text-xs uppercase tracking-wider font-bold mb-0.5">Total Income</p>
+                      <p className="text-base sm:text-lg font-bold text-emerald-400">+{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                   </div>
+                   <div className="flex-1 sm:flex-initial bg-white/5 sm:bg-transparent p-2.5 sm:p-0 rounded-xl">
+                      <p className="text-forest-400 text-[10px] sm:text-xs uppercase tracking-wider font-bold mb-0.5">Total Expenses</p>
+                      <p className="text-base sm:text-lg font-bold text-rose-400">-{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                   </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between pt-1 animate-fadeIn">
+                 <div className="flex items-center gap-2">
+                   <span className="text-forest-300 text-sm">Ksh</span>
+                   <span className="font-bold text-lg sm:text-xl">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                 </div>
+                 <div className="flex items-center gap-3 text-xs">
+                   <span className="text-emerald-400 font-semibold">+{totalIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                   <span className="text-forest-500">•</span>
+                   <span className="text-rose-400 font-semibold">-{totalExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                 </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between">
             <div className="relative w-full sm:max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-forest-400" size={18} />
               <input 
@@ -614,7 +662,7 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                 placeholder="Search ledger entries..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-sand-200 rounded-2xl pl-11 pr-12 py-3.5 focus:outline-none focus:ring-2 focus:ring-gold-500/50 text-forest-900 placeholder:text-forest-400 shadow-sm transition-all"
+                className="w-full bg-white border border-sand-200 rounded-2xl pl-11 pr-12 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-gold-500/50 text-forest-900 placeholder:text-forest-400 shadow-sm transition-all text-sm sm:text-base"
               />
               <button 
                  onClick={toggleVoiceSearch}
@@ -624,61 +672,61 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                  {isVoiceSearching ? <Mic size={18} /> : <MicOff size={18} />}
               </button>
             </div>
-            <div className="text-sm font-medium text-forest-500 hidden sm:block">
+            <div className="text-xs sm:text-sm font-bold text-forest-500 w-full sm:w-auto text-right sm:text-left">
               {filteredExpenditures.length} transactions
             </div>
           </div>
 
-          <div className="flex-1 bg-white/50 rounded-3xl border border-sand-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 bg-white/50 rounded-2xl sm:rounded-3xl border border-sand-200 shadow-sm overflow-hidden flex flex-col min-h-0">
             {groupedExpenditures.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-forest-400">
                 <Receipt size={48} className="mb-4 opacity-30" />
-                <p className="font-medium text-forest-900 text-lg">Your ledger is empty</p>
-                <p className="text-sm mt-1">Add an expense or income to start tracking.</p>
+                <p className="font-bold text-forest-900 text-lg">Your ledger is empty</p>
+                <p className="text-xs sm:text-sm mt-1">Add an expense or income to start tracking.</p>
               </div>
             ) : (
-              <div className="overflow-y-auto px-4 py-2 sm:px-6 sm:py-4 flex-1 space-y-8">
+              <div className="overflow-y-auto px-3 py-2 sm:px-6 sm:py-4 flex-1 space-y-6 sm:space-y-8">
                 {groupedExpenditures.map(group => (
-                  <div key={group.date} className="space-y-3">
-                     <h4 className="text-xs font-bold text-forest-400 uppercase tracking-widest sticky top-0 bg-[#FAFAFA]/95 backdrop-blur-md py-2 z-10">
+                  <div key={group.date} className="space-y-2.5 sm:space-y-3">
+                     <h4 className="text-xs font-bold text-forest-500 uppercase tracking-widest sticky top-0 bg-[#FAFAFA]/95 backdrop-blur-md py-1.5 sm:py-2 z-10">
                         {new Date(group.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                      </h4>
                      <div className="bg-white rounded-2xl border border-sand-100 shadow-sm divide-y divide-sand-50 overflow-hidden">
                        {group.items.map(exp => (
-                         <div key={exp.id} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center hover:bg-sand-50/50 transition-colors group relative">
-                           <div className="flex-1 min-w-0 flex items-start gap-4 w-full">
-                              <div className={`w-10 h-10 rounded-full flex shrink-0 items-center justify-center ${exp.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                                 {exp.type === 'income' ? <Plus size={18} /> : <Receipt size={18} />}
+                         <div key={exp.id} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center hover:bg-sand-50/50 transition-colors group relative">
+                           <div className="flex-1 min-w-0 flex items-start gap-3 sm:gap-4 w-full">
+                              <div className={`w-11 h-11 sm:w-10 sm:h-10 rounded-full flex shrink-0 items-center justify-center ${exp.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                                 {exp.type === 'income' ? <Plus size={20} /> : <Receipt size={20} />}
                               </div>
                               <div className="flex-1 min-w-0 pt-0.5">
                                  <div className="flex justify-between items-start gap-2 mb-1">
-                                    <h5 className="font-bold text-forest-900 text-base truncate pr-2">{exp.recipient}</h5>
-                                    <div className={`font-display font-bold whitespace-nowrap ${exp.type === 'income' ? 'text-emerald-600' : 'text-forest-900'}`}>
+                                    <h5 className="font-bold text-forest-900 text-base sm:text-lg truncate pr-2">{exp.recipient}</h5>
+                                    <div className={`font-display font-bold text-base sm:text-lg whitespace-nowrap ${exp.type === 'income' ? 'text-emerald-600' : 'text-forest-900'}`}>
                                       {exp.type === 'income' ? '+' : '-'} Ksh {exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                  </div>
-                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-forest-500">
-                                    {exp.time && <span>{exp.time}</span>}
+                                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-forest-500">
+                                    {exp.time && <span className="font-medium">{exp.time}</span>}
                                     {exp.time && <span className="w-1 h-1 rounded-full bg-sand-300"></span>}
-                                    {exp.paymentMethod && <span className="uppercase tracking-wider font-bold bg-sand-100 px-1.5 py-0.5 rounded text-[10px]">{exp.paymentMethod}</span>}
+                                    {exp.paymentMethod && <span className="uppercase tracking-wider font-bold bg-sand-100 text-forest-700 px-2 py-0.5 rounded text-[10px]">{exp.paymentMethod}</span>}
                                     {exp.reference && (
                                        <>
                                          <span className="w-1 h-1 rounded-full bg-sand-300"></span>
-                                         <span className="font-mono">{exp.reference}</span>
+                                         <span className="font-mono font-semibold text-forest-600">{exp.reference}</span>
                                        </>
                                     )}
                                  </div>
                                  {exp.paymentFor && (
-                                    <p className="text-sm text-forest-600 mt-2">{exp.paymentFor}</p>
+                                    <p className="text-xs sm:text-sm text-forest-600 font-medium mt-1.5">{exp.paymentFor}</p>
                                  )}
                                  {exp.purchasedItems && exp.purchasedItems.length > 0 && (
                                     <div className="mt-3 bg-sand-50 rounded-xl p-3 border border-sand-100">
-                                      <p className="text-xs font-bold text-forest-400 uppercase tracking-wider mb-2">Receipt Items</p>
+                                      <p className="text-xs font-bold text-forest-500 uppercase tracking-wider mb-2">Receipt Items</p>
                                       <ul className="space-y-1.5">
                                         {exp.purchasedItems.map((item, idx) => (
-                                          <li key={idx} className="flex justify-between text-xs text-forest-700">
+                                          <li key={idx} className="flex justify-between text-xs sm:text-sm text-forest-700">
                                             <span className="truncate pr-4">{item.name}</span>
-                                            <span className="font-medium whitespace-nowrap text-forest-900">{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            <span className="font-bold whitespace-nowrap text-forest-900">{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                           </li>
                                         ))}
                                       </ul>
@@ -687,8 +735,8 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                               </div>
                            </div>
                            <button 
-                             onClick={() => confirmAndDeleteExpenditure(exp)}
-                             className="absolute top-4 right-4 sm:static text-forest-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-2 sm:p-1 rounded-lg hover:bg-rose-50"
+                             onClick={() => confirmAndDeleteExpenditure(exp)} 
+                             className="absolute top-3 right-3 sm:static text-forest-300 hover:text-rose-500 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 sm:p-1.5 rounded-lg hover:bg-rose-50"
                              title="Delete entry"
                            >
                              <X size={18} />
@@ -705,203 +753,284 @@ const Expenditures: React.FC<ExpendituresProps> = ({
       )}
 
       {activeTab === 'budget' && (
-        <div className="flex-1 overflow-y-auto space-y-6 pb-6">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 pb-6">
+           <div className={`grid grid-cols-1 ${(!isBudgetsCollapsed && !isRecurringCollapsed) ? 'lg:grid-cols-2' : 'grid-cols-1'} gap-4 sm:gap-6`}>
               {/* Budgets Section */}
-              <div className="bg-white rounded-2xl p-6 border border-sand-200 shadow-sm flex flex-col">
-                 <div className="flex justify-between items-center mb-4">
-                   <h3 className="font-display font-bold text-forest-900 flex items-center gap-2"><PieChart size={18} className="text-forest-500"/> Budgets</h3>
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-sand-200 shadow-sm flex flex-col transition-all">
+                 <div className="flex justify-between items-center mb-3 sm:mb-4 pb-2.5 border-b border-sand-100">
+                   <div>
+                     <h3 className="font-display font-bold text-forest-900 text-base sm:text-xl flex items-center gap-2">
+                       <PieChart size={20} className="text-forest-500"/> Budgets
+                     </h3>
+                     <p className="text-xs text-forest-500">Spending limits per category</p>
+                   </div>
+                   {/* Collapsible Button */}
+                   <button
+                     onClick={() => setIsBudgetsCollapsed(!isBudgetsCollapsed)}
+                     className="flex items-center gap-1.5 px-3 py-1.5 bg-sand-100 hover:bg-sand-200 text-forest-700 rounded-xl text-xs font-bold transition-colors"
+                     title={isBudgetsCollapsed ? "Expand Budgets View" : "Collapse Budgets View"}
+                   >
+                     <span>{isBudgetsCollapsed ? "Expand" : "Collapse"}</span>
+                     {isBudgetsCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                   </button>
                  </div>
                  
-                 <div className="space-y-4 mb-6">
-                    {budgets.length === 0 ? (
-                      <p className="text-sm text-forest-400 text-center py-4">No budgets set.</p>
-                    ) : budgets.map(b => {
-                      const spent = expenditures.filter(exp => exp.recipient.toLowerCase().includes(b.category.toLowerCase())).reduce((s, exp) => s + exp.amount, 0);
-                      const percent = Math.min(100, Math.round((spent / (b.amount || 1)) * 100));
-                      return (
-                        <div key={b.id} className="group relative border border-sand-100 rounded-xl p-4">
-                           <div className="flex justify-between text-sm mb-1">
-                              <span className="font-medium text-forest-900">{b.category}</span>
-                              <span className="text-forest-500">Ksh {spent.toLocaleString()} / {b.amount.toLocaleString()}</span>
-                           </div>
-                           <div className="h-2 w-full bg-sand-100 rounded-full overflow-hidden">
-                             <div className={`h-full rounded-full ${percent >= 100 ? 'bg-red-500' : percent > 80 ? 'bg-gold-500' : 'bg-forest-500'}`} style={{ width: `${percent}%` }}></div>
-                           </div>
-                           <button onClick={() => confirmAndDeleteBudget(b)} className="absolute top-2 right-2 p-1 text-forest-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Trash size={14}/>
-                           </button>
-                        </div>
-                      );
-                    })}
-                 </div>
+                 {!isBudgetsCollapsed && (
+                   <div className="flex flex-col flex-1 animate-fadeIn">
+                     <div className="space-y-3 sm:space-y-4 mb-6">
+                        {budgets.length === 0 ? (
+                          <div className="p-6 text-center text-forest-400 bg-sand-50/50 rounded-2xl border border-dashed border-sand-200">
+                            <PieChart size={36} className="mx-auto mb-2 opacity-30 text-forest-500" />
+                            <p className="text-sm font-bold text-forest-700">No budgets set yet</p>
+                            <p className="text-xs text-forest-400 mt-0.5">Set a spending limit below to keep track.</p>
+                          </div>
+                        ) : budgets.map(b => {
+                          const spent = expenditures.filter(exp => exp.recipient.toLowerCase().includes(b.category.toLowerCase())).reduce((s, exp) => s + exp.amount, 0);
+                          const percent = Math.min(100, Math.round((spent / (b.amount || 1)) * 100));
+                          return (
+                            <div key={b.id} className="group relative border border-sand-200 rounded-2xl p-4 sm:p-5 bg-sand-50/40 hover:bg-white transition-all shadow-xs">
+                               <div className="flex justify-between items-baseline mb-2">
+                                  <span className="font-bold text-forest-900 text-base sm:text-lg">{b.category}</span>
+                                  <div className="text-right">
+                                    <span className="text-sm sm:text-base font-bold text-forest-900">Ksh {spent.toLocaleString()}</span>
+                                    <span className="text-xs text-forest-500"> / {b.amount.toLocaleString()}</span>
+                                  </div>
+                               </div>
+                               <div className="h-3.5 sm:h-3 w-full bg-sand-200 rounded-full overflow-hidden shadow-inner">
+                                 <div className={`h-full rounded-full transition-all duration-500 ${percent >= 100 ? 'bg-red-500' : percent > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${percent}%` }}></div>
+                               </div>
+                               <div className="flex justify-between items-center mt-2 text-xs text-forest-600 font-medium">
+                                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${percent >= 100 ? 'bg-red-100 text-red-700' : percent > 80 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                   {percent}% Used
+                                 </span>
+                                 <span>{percent >= 100 ? 'Budget Exceeded' : `Ksh ${(b.amount - spent).toLocaleString()} left`}</span>
+                               </div>
+                               <button 
+                                 onClick={() => confirmAndDeleteBudget(b)} 
+                                 className="absolute top-3 right-3 p-1.5 text-forest-400 hover:text-red-500 rounded-lg hover:bg-red-50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                 title="Delete budget"
+                               >
+                                  <Trash size={16}/>
+                               </button>
+                            </div>
+                          );
+                        })}
+                     </div>
 
-                 <div className="mt-auto border-t border-sand-100 pt-4">
-                   <h4 className="text-xs font-bold text-forest-500 uppercase mb-3">Create New Budget</h4>
-                   <div className="flex gap-2">
-                     <input type="text" placeholder="Category" value={newBudget.category} onChange={e => setNewBudget(p => ({...p, category: e.target.value}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
-                     <input type="number" placeholder="Amount" value={newBudget.amount} onChange={e => setNewBudget(p => ({...p, amount: e.target.value}))} className="w-24 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
-                     <button 
-                       disabled={!newBudget.category || !newBudget.amount}
-                       onClick={() => {
-                         onUpdateBudget?.({ id: crypto.randomUUID(), category: newBudget.category, amount: Number(newBudget.amount), createdAt: new Date().toISOString() });
-                         setNewBudget({category: '', amount: ''});
-                       }}
-                       className="bg-forest-900 text-white p-2 rounded-lg disabled:opacity-50 hover:bg-forest-800 transition-colors"
-                      >
-                       <Plus size={18}/>
-                     </button>
+                     <div className="mt-auto border-t border-sand-100 pt-4">
+                       <h4 className="text-xs font-bold text-forest-600 uppercase mb-2.5">Create New Budget</h4>
+                       <div className="flex flex-col sm:flex-row gap-2">
+                         <input type="text" placeholder="Category (e.g. Groceries)" value={newBudget.category} onChange={e => setNewBudget(p => ({...p, category: e.target.value}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" />
+                         <div className="flex gap-2">
+                           <input type="number" placeholder="Amount (Ksh)" value={newBudget.amount} onChange={e => setNewBudget(p => ({...p, amount: e.target.value}))} className="w-full sm:w-32 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" />
+                           <button 
+                             disabled={!newBudget.category || !newBudget.amount}
+                             onClick={() => {
+                               onUpdateBudget?.({ id: crypto.randomUUID(), category: newBudget.category, amount: Number(newBudget.amount), createdAt: new Date().toISOString() });
+                               setNewBudget({category: '', amount: ''});
+                             }}
+                             className="bg-forest-900 text-white px-4 py-2.5 rounded-xl disabled:opacity-50 hover:bg-forest-800 transition-colors font-bold text-sm flex items-center justify-center gap-1 shrink-0 shadow-md"
+                            >
+                             <Plus size={18}/> <span>Add</span>
+                           </button>
+                         </div>
+                       </div>
+                     </div>
                    </div>
-                 </div>
+                 )}
               </div>
 
               {/* Recurring Section */}
-              <div className="bg-white rounded-2xl p-6 border border-sand-200 shadow-sm flex flex-col h-full max-h-[600px]">
-                 <div className="flex justify-between items-start mb-6">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-sand-200 shadow-sm flex flex-col transition-all">
+                 <div className="flex justify-between items-center mb-3 sm:mb-4 pb-2.5 border-b border-sand-100">
                    <div>
-                     <h3 className="font-display font-bold text-forest-900 flex items-center gap-2 mb-1">
-                       <Repeat size={18} className="text-forest-500"/> Recurring
+                     <h3 className="font-display font-bold text-forest-900 text-base sm:text-xl flex items-center gap-2">
+                       <Repeat size={20} className="text-forest-500"/> Recurring Expenses
                      </h3>
-                     <p className="text-xs text-forest-500">Fixed expenses over time</p>
-                   </div>
-                   <div className="text-right">
-                     <p className="text-xs text-forest-500 uppercase font-bold tracking-wider mb-1">Monthly Eqv.</p>
-                     <p className="text-lg font-display font-bold text-forest-900">
-                       Ksh {totalMonthlyRecurring.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                     <p className="text-xs text-forest-500">
+                       Monthly Eqv: <span className="font-bold text-forest-900">Ksh {totalMonthlyRecurring.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
                      </p>
                    </div>
+                   {/* Collapsible Button */}
+                   <button
+                     onClick={() => setIsRecurringCollapsed(!isRecurringCollapsed)}
+                     className="flex items-center gap-1.5 px-3 py-1.5 bg-sand-100 hover:bg-sand-200 text-forest-700 rounded-xl text-xs font-bold transition-colors"
+                     title={isRecurringCollapsed ? "Expand Recurring View" : "Collapse Recurring View"}
+                   >
+                     <span>{isRecurringCollapsed ? "Expand" : "Collapse"}</span>
+                     {isRecurringCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                   </button>
                  </div>
                  
-                 <div className="space-y-3 mb-6 overflow-y-auto custom-scrollbar flex-1 pr-1 min-h-[150px]">
-                    {recurringExpenses.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-forest-300 py-8">
-                        <Repeat size={32} className="mb-3 opacity-20" />
-                        <p className="text-sm font-medium text-forest-500">No recurring expenses</p>
-                        <p className="text-xs text-forest-400 mt-1 text-center">Add subscriptions, rent, or bills below</p>
-                      </div>
-                    ) : recurringExpenses.map(r => {
-                      const frequencyLabels: Record<string, string> = {
-                        'daily': 'Daily',
-                        'weekly': 'Weekly',
-                        'monthly': 'Monthly',
-                        'bi-monthly': 'Every 2 Months',
-                        'quarterly': 'Quarterly (3 Mo)',
-                        'bi-annually': 'Half Year (6 Mo)',
-                        'yearly': 'Yearly'
-                      };
-                      const freqDisplay = frequencyLabels[r.frequency] || r.frequency;
+                 {!isRecurringCollapsed && (
+                   <div className="flex flex-col flex-1 animate-fadeIn">
+                     <div className="space-y-3 mb-6 overflow-y-auto custom-scrollbar flex-1 pr-1 min-h-[150px]">
+                        {recurringExpenses.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-forest-300 py-8 bg-sand-50/50 rounded-2xl border border-dashed border-sand-200">
+                            <Repeat size={36} className="mb-2 opacity-30 text-forest-500" />
+                            <p className="text-sm font-bold text-forest-700">No recurring expenses</p>
+                            <p className="text-xs text-forest-400 mt-0.5 text-center">Add subscriptions, rent, or utilities below.</p>
+                          </div>
+                        ) : recurringExpenses.map(r => {
+                          const frequencyLabels: Record<string, string> = {
+                            'daily': 'Daily',
+                            'weekly': 'Weekly',
+                            'monthly': 'Monthly',
+                            'bi-monthly': 'Every 2 Months',
+                            'quarterly': 'Quarterly (3 Mo)',
+                            'bi-annually': 'Half Year (6 Mo)',
+                            'yearly': 'Yearly'
+                          };
+                          const freqDisplay = frequencyLabels[r.frequency] || r.frequency;
 
-                      return (
-                      <div key={r.id} className="group relative flex justify-between items-center p-3 border border-sand-100 rounded-xl bg-sand-50/50 hover:bg-white hover:border-sand-200 transition-all shadow-sm gap-2">
-                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                           <div className="w-8 h-8 rounded-full bg-sand-200 text-forest-500 flex items-center justify-center shrink-0">
-                             <Repeat size={14} />
-                           </div>
-                           <div className="min-w-0">
-                             <p className="font-medium text-forest-900 text-sm leading-tight truncate">{r.name}</p>
-                             <p className="text-xs text-forest-500 font-medium">{freqDisplay} {r.dayOfMonth ? `• Fixed on the ${r.dayOfMonth}${r.dayOfMonth === 1 ? 'st' : r.dayOfMonth === 2 ? 'nd' : r.dayOfMonth === 3 ? 'rd' : 'th'}` : ''}</p>
-                           </div>
+                          return (
+                          <div key={r.id} className="group relative flex justify-between items-center p-3.5 sm:p-4 border border-sand-200 rounded-2xl bg-sand-50/40 hover:bg-white transition-all shadow-xs gap-3">
+                             <div className="flex items-center gap-3 min-w-0 flex-1">
+                               <div className="w-10 h-10 rounded-full bg-forest-100 text-forest-800 flex items-center justify-center shrink-0">
+                                 <Repeat size={18} />
+                               </div>
+                               <div className="min-w-0">
+                                 <p className="font-bold text-forest-900 text-sm sm:text-base leading-tight truncate">{r.name}</p>
+                                 <p className="text-xs text-forest-500 font-medium mt-0.5">{freqDisplay} {r.dayOfMonth ? `• Fixed on the ${r.dayOfMonth}${r.dayOfMonth === 1 ? 'st' : r.dayOfMonth === 2 ? 'nd' : r.dayOfMonth === 3 ? 'rd' : 'th'}` : ''}</p>
+                               </div>
+                             </div>
+                             <div className="text-right shrink-0 flex items-center gap-2">
+                               <div>
+                                 <p className="font-bold text-forest-900 text-sm sm:text-base">Ksh {r.amount.toLocaleString()}</p>
+                               </div>
+                               <button
+                                 onClick={() => {
+                                   setAddMode('manual');
+                                   setParsedData({
+                                     date: new Date().toISOString().split('T')[0],
+                                     time: '',
+                                     recipient: r.name,
+                                     amount: r.amount,
+                                     paymentMethod: 'M-PESA / Bank',
+                                     reference: 'RECURRING-' + Math.floor(Math.random()*10000),
+                                     rawMessage: `Recurring payment for ${r.name}`,
+                                     paymentFor: r.name,
+                                     type: 'expense'
+                                   });
+                                   setRawMessage('');
+                                   setParseError('');
+                                   setIsAdding(true);
+                                 }}
+                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors shadow-sm"
+                                 title="Open transaction details to pay"
+                               >
+                                 Pay
+                               </button>
+                               <button 
+                                 onClick={() => confirmAndDeleteRecurring(r)} 
+                                 className="p-1.5 text-forest-400 hover:text-red-500 rounded-lg hover:bg-red-50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                 title="Delete recurring expense"
+                               >
+                                  <Trash size={16}/>
+                               </button>
+                             </div>
+                          </div>
+                        );})}
+                     </div>
+
+                     <div className="mt-auto border-t border-sand-100 pt-4">
+                       <h4 className="text-xs font-bold text-forest-600 uppercase mb-2.5">Add Recurring & Fixed Reminder</h4>
+                       <div className="flex flex-col gap-2">
+                         <div className="flex flex-col sm:flex-row gap-2">
+                           <input type="text" placeholder="Name (e.g. Rent, Internet)" value={newRecurring.name} onChange={e => setNewRecurring(p => ({...p, name: e.target.value}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" />
+                           <input type="number" placeholder="Amount (Ksh)" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({...p, amount: e.target.value}))} className="w-full sm:w-32 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" />
                          </div>
-                         <div className="text-right shrink-0 flex items-center gap-2">
-                           <div>
-                             <p className="font-bold text-forest-900 text-sm">Ksh {r.amount.toLocaleString()}</p>
-                           </div>
+                         <div className="flex gap-2">
+                           <select value={newRecurring.frequency} onChange={e => setNewRecurring(p => ({...p, frequency: e.target.value as any}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900 font-medium">
+                             <option value="monthly">Monthly</option>
+                             <option value="daily">Daily</option>
+                             <option value="weekly">Weekly</option>
+                             <option value="bi-monthly">Every 2 Months</option>
+                             <option value="quarterly">Quarterly (Every 3 Months)</option>
+                             <option value="bi-annually">Half Year (Every 6 Months)</option>
+                             <option value="yearly">Yearly (Annual)</option>
+                           </select>
+                           <input type="number" min="1" max="31" placeholder="Day (e.g. 5)" value={newRecurring.dayOfMonth} onChange={e => setNewRecurring(p => ({...p, dayOfMonth: e.target.value}))} className="w-24 bg-sand-50 border border-sand-200 rounded-xl px-3 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" title="Fixed day of month (e.g. 5th)" />
                            <button
+                             disabled={!newRecurring.name || !newRecurring.amount}
                              onClick={() => {
-                               setAddMode('manual');
-                               setParsedData({
-                                 date: new Date().toISOString().split('T')[0],
-                                 time: '',
-                                 recipient: r.name,
-                                 amount: r.amount,
-                                 paymentMethod: 'M-PESA / Bank',
-                                 reference: 'RECURRING-' + Math.floor(Math.random()*10000),
-                                 rawMessage: `Recurring payment for ${r.name}`,
-                                 paymentFor: r.name,
-                                 type: 'expense'
+                               onAddRecurring?.({
+                                 name: newRecurring.name,
+                                 amount: Number(newRecurring.amount),
+                                 frequency: newRecurring.frequency as any,
+                                 nextDueDate: new Date().toISOString().split('T')[0],
+                                 dayOfMonth: newRecurring.dayOfMonth ? Number(newRecurring.dayOfMonth) : undefined
                                });
-                               setRawMessage('');
-                               setParseError('');
-                               setIsAdding(true);
+                               setNewRecurring({name: '', amount: '', frequency: 'monthly', dayOfMonth: '5'});
                              }}
-                             className="px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-lg transition-colors border border-emerald-200 shadow-xs"
-                             title="Open transaction details to pay"
-                           >
-                             Pay
+                             className="bg-forest-900 text-white px-4 py-2.5 rounded-xl disabled:opacity-50 hover:bg-forest-800 transition-colors text-sm font-bold flex items-center justify-center gap-1.5 shrink-0 shadow-md"
+                            >
+                             <Plus size={16}/> Save
                            </button>
                          </div>
-                         <button onClick={() => confirmAndDeleteRecurring(r)} className="absolute -right-2 -top-2 p-1.5 bg-white shadow-sm border border-sand-100 rounded-full text-forest-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash size={12}/>
-                         </button>
-                      </div>
-                    );})}
-                 </div>
-
-                 <div className="mt-auto border-t border-sand-100 pt-4">
-                   <h4 className="text-xs font-bold text-forest-500 uppercase mb-3">Add Recurring & Fixed Reminder</h4>
-                   <div className="flex flex-col gap-2">
-                     <div className="flex gap-2">
-                       <input type="text" placeholder="Name (e.g. Rent, Subscription)" value={newRecurring.name} onChange={e => setNewRecurring(p => ({...p, name: e.target.value}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors" />
-                       <input type="number" placeholder="Amount" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({...p, amount: e.target.value}))} className="w-28 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors" />
-                     </div>
-                     <div className="flex gap-2">
-                       <select value={newRecurring.frequency} onChange={e => setNewRecurring(p => ({...p, frequency: e.target.value as any}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors cursor-pointer text-forest-900 font-medium">
-                         <option value="monthly">Monthly</option>
-                         <option value="daily">Daily</option>
-                         <option value="weekly">Weekly</option>
-                         <option value="bi-monthly">Every 2 Months</option>
-                         <option value="quarterly">Quarterly (Every 3 Months)</option>
-                         <option value="bi-annually">Half Year (Every 6 Months)</option>
-                         <option value="yearly">Yearly (Annual)</option>
-                       </select>
-                       <input type="number" min="1" max="31" placeholder="Day (e.g. 5)" value={newRecurring.dayOfMonth} onChange={e => setNewRecurring(p => ({...p, dayOfMonth: e.target.value}))} className="w-24 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors" title="Fixed day of month (e.g. 5th)" />
-                       <button
-                         disabled={!newRecurring.name || !newRecurring.amount}
-                         onClick={() => {
-                           onAddRecurring?.({
-                             name: newRecurring.name,
-                             amount: Number(newRecurring.amount),
-                             frequency: newRecurring.frequency as any,
-                             nextDueDate: new Date().toISOString().split('T')[0],
-                             dayOfMonth: newRecurring.dayOfMonth ? Number(newRecurring.dayOfMonth) : undefined
-                           });
-                           setNewRecurring({name: '', amount: '', frequency: 'monthly', dayOfMonth: '5'});
-                         }}
-                         className="bg-forest-900 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-forest-800 transition-colors text-sm font-medium flex items-center gap-1.5"
-                        >
-                         <Plus size={16}/> Save
-                       </button>
+                       </div>
                      </div>
                    </div>
-                 </div>
+                 )}
               </div>
            </div>
         </div>
       )}
 
       {activeTab === 'statements' && (
-        <div className="flex-1 flex flex-col bg-white rounded-2xl border border-sand-200 shadow-sm overflow-hidden p-6">
-          <div className="flex justify-between items-center mb-6">
-             <div>
-               <h3 className="font-display font-bold text-forest-900 text-lg flex items-center gap-2"><FileText size={20} className="text-forest-500"/> PDF Statements</h3>
-               <p className="text-sm text-forest-500">View bank or M-PESA PDF statements</p>
+        <div className="flex-1 flex flex-col bg-white rounded-2xl sm:rounded-3xl border border-sand-200 shadow-sm overflow-hidden p-4 sm:p-6 transition-all min-h-[500px]">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 pb-3 border-b border-sand-100">
+             <div className="flex justify-between items-center w-full sm:w-auto">
+               <div>
+                 <h3 className="font-display font-bold text-forest-900 text-base sm:text-xl flex items-center gap-2">
+                   <FileText size={22} className="text-forest-500"/> PDF Statements
+                 </h3>
+                 {!isStatementControlsCollapsed && (
+                   <p className="text-xs sm:text-sm text-forest-500 mt-0.5">View bank or M-PESA PDF statements</p>
+                 )}
+               </div>
+               {/* Collapsible Button to maximize PDF view */}
+               <button
+                 onClick={() => setIsStatementControlsCollapsed(!isStatementControlsCollapsed)}
+                 className="flex items-center gap-1.5 px-3 py-1.5 bg-sand-100 hover:bg-sand-200 text-forest-700 rounded-xl text-xs font-bold transition-colors"
+                 title={isStatementControlsCollapsed ? "Show Controls & Upload" : "Collapse Controls to Enlarge PDF View"}
+               >
+                 <span>{isStatementControlsCollapsed ? "Show Info" : "Enlarge View"}</span>
+                 {isStatementControlsCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+               </button>
              </div>
-             <div>
-               <label className="cursor-pointer bg-sand-100 hover:bg-sand-200 text-forest-900 px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+
+             <div className="flex items-center gap-2 w-full sm:w-auto">
+               <label className="cursor-pointer bg-forest-900 hover:bg-forest-800 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 w-full sm:w-auto">
                  <Upload size={16} />
-                 <span>Upload PDF</span>
+                 <span>Upload PDF Statement</span>
                  <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
                </label>
+               {pdfUrl && (
+                 <button
+                   onClick={() => setPdfUrl(null)}
+                   className="p-2.5 text-forest-400 hover:text-red-500 rounded-xl hover:bg-sand-100 transition-colors"
+                   title="Clear Statement"
+                 >
+                   <X size={18} />
+                 </button>
+               )}
              </div>
           </div>
-          <div className="flex-1 bg-sand-50 rounded-xl border border-sand-200 overflow-hidden relative flex items-center justify-center">
+
+          <div className={`flex-1 bg-sand-50 rounded-2xl border border-sand-200 overflow-hidden relative flex items-center justify-center transition-all ${isStatementControlsCollapsed ? 'min-h-[75vh]' : 'min-h-[420px]'}`}>
             {pdfUrl ? (
-              <iframe src={pdfUrl} className="w-full h-full border-none" title="PDF Viewer" />
+              <iframe src={pdfUrl} className="w-full h-full min-h-[500px] border-none" title="PDF Viewer" />
             ) : (
-              <div className="text-center text-forest-400">
-                <FileText size={48} className="mx-auto mb-3 opacity-50" />
-                <p>No document selected</p>
-                <p className="text-sm mt-1">Upload a PDF to view it here securely.</p>
+              <div className="text-center text-forest-400 p-8">
+                <FileText size={56} className="mx-auto mb-3 opacity-40 text-forest-600" />
+                <p className="font-bold text-forest-900 text-base sm:text-lg">No statement selected</p>
+                <p className="text-xs sm:text-sm mt-1 max-w-xs mx-auto text-forest-500">Upload your M-PESA or bank PDF statement to view and analyze it securely.</p>
+                <label className="mt-4 inline-flex cursor-pointer bg-gold-500 hover:bg-gold-600 text-forest-900 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all gap-2 items-center">
+                  <Upload size={16} />
+                  <span>Choose PDF File</span>
+                  <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
+                </label>
               </div>
             )}
           </div>
