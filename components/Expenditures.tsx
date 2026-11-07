@@ -284,6 +284,24 @@ const Expenditures: React.FC<ExpendituresProps> = ({
 
   const handleSaveExpense = () => {
     if (parsedData && parsedData.reference && parsedData.amount) {
+      const recipient = (parsedData.recipient || '').toLowerCase();
+      const paymentFor = (parsedData.paymentFor || '').toLowerCase();
+
+      const matchedBudget = (budgets || []).find(b => recipient.includes(b.category.toLowerCase()) || paymentFor.includes(b.category.toLowerCase()));
+      const matchedRecurring = (recurringExpenses || []).find(r => recipient.includes(r.name.toLowerCase()) || paymentFor.includes(r.name.toLowerCase()));
+
+      if (matchedBudget) {
+        const confirmed = window.confirm(`Is this payment for your "${matchedBudget.category}" budget?`);
+        if (confirmed && !parsedData.paymentFor) {
+           parsedData.paymentFor = matchedBudget.category;
+        }
+      } else if (matchedRecurring) {
+        const confirmed = window.confirm(`Would you like to link this transaction to your recurring budget/expense "${matchedRecurring.name}"?`);
+        if (confirmed && !parsedData.paymentFor) {
+           parsedData.paymentFor = matchedRecurring.name;
+        }
+      }
+
       onAddExpenditure(parsedData as Omit<Expenditure, 'id' | 'createdAt'>);
       setIsAdding(false);
       setRawMessage('');
@@ -300,9 +318,9 @@ const Expenditures: React.FC<ExpendituresProps> = ({
     }
   };
 
-  // Budgeting logic placeholders (just basic interactions)
+  // Budgeting logic placeholders
   const [newBudget, setNewBudget] = useState({ category: '', amount: '' });
-  const [newRecurring, setNewRecurring] = useState({ name: '', amount: '', frequency: 'monthly' as const });
+  const [newRecurring, setNewRecurring] = useState({ name: '', amount: '', frequency: 'monthly' as const, dayOfMonth: '5' });
 
   const handleAskAi = async () => {
     if (!aiQuery.trim()) return;
@@ -349,8 +367,8 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   };
 
   const filteredExpenditures = useMemo(() => {
-    return expenditures.filter(exp => 
-      exp.recipient.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    return expenditures.filter(exp =>
+      exp.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
       exp.reference.toLowerCase().includes(searchQuery.toLowerCase())
     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenditures, searchQuery]);
@@ -774,18 +792,43 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                       const freqDisplay = frequencyLabels[r.frequency] || r.frequency;
 
                       return (
-                      <div key={r.id} className="group relative flex justify-between items-center p-3 border border-sand-100 rounded-xl bg-sand-50/50 hover:bg-white hover:border-sand-200 transition-all shadow-sm">
-                         <div className="flex items-center gap-3">
+                      <div key={r.id} className="group relative flex justify-between items-center p-3 border border-sand-100 rounded-xl bg-sand-50/50 hover:bg-white hover:border-sand-200 transition-all shadow-sm gap-2">
+                         <div className="flex items-center gap-3 min-w-0 flex-1">
                            <div className="w-8 h-8 rounded-full bg-sand-200 text-forest-500 flex items-center justify-center shrink-0">
                              <Repeat size={14} />
                            </div>
-                           <div>
-                             <p className="font-medium text-forest-900 text-sm leading-tight">{r.name}</p>
-                             <p className="text-xs text-forest-500 font-medium">{freqDisplay}</p>
+                           <div className="min-w-0">
+                             <p className="font-medium text-forest-900 text-sm leading-tight truncate">{r.name}</p>
+                             <p className="text-xs text-forest-500 font-medium">{freqDisplay} {r.dayOfMonth ? `• Fixed on the ${r.dayOfMonth}${r.dayOfMonth === 1 ? 'st' : r.dayOfMonth === 2 ? 'nd' : r.dayOfMonth === 3 ? 'rd' : 'th'}` : ''}</p>
                            </div>
                          </div>
-                         <div className="text-right">
-                           <p className="font-bold text-forest-900 text-sm">Ksh {r.amount.toLocaleString()}</p>
+                         <div className="text-right shrink-0 flex items-center gap-2">
+                           <div>
+                             <p className="font-bold text-forest-900 text-sm">Ksh {r.amount.toLocaleString()}</p>
+                           </div>
+                           <button
+                             onClick={() => {
+                               setAddMode('manual');
+                               setParsedData({
+                                 date: new Date().toISOString().split('T')[0],
+                                 time: '',
+                                 recipient: r.name,
+                                 amount: r.amount,
+                                 paymentMethod: 'M-PESA / Bank',
+                                 reference: 'RECURRING-' + Math.floor(Math.random()*10000),
+                                 rawMessage: `Recurring payment for ${r.name}`,
+                                 paymentFor: r.name,
+                                 type: 'expense'
+                               });
+                               setRawMessage('');
+                               setParseError('');
+                               setIsAdding(true);
+                             }}
+                             className="px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-lg transition-colors border border-emerald-200 shadow-xs"
+                             title="Open transaction details to pay"
+                           >
+                             Pay
+                           </button>
                          </div>
                          <button onClick={() => confirmAndDeleteRecurring(r)} className="absolute -right-2 -top-2 p-1.5 bg-white shadow-sm border border-sand-100 rounded-full text-forest-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Trash size={12}/>
@@ -795,7 +838,7 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                  </div>
 
                  <div className="mt-auto border-t border-sand-100 pt-4">
-                   <h4 className="text-xs font-bold text-forest-500 uppercase mb-3">Add Recurring</h4>
+                   <h4 className="text-xs font-bold text-forest-500 uppercase mb-3">Add Recurring & Fixed Reminder</h4>
                    <div className="flex flex-col gap-2">
                      <div className="flex gap-2">
                        <input type="text" placeholder="Name (e.g. Rent, Subscription)" value={newRecurring.name} onChange={e => setNewRecurring(p => ({...p, name: e.target.value}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors" />
@@ -803,19 +846,26 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                      </div>
                      <div className="flex gap-2">
                        <select value={newRecurring.frequency} onChange={e => setNewRecurring(p => ({...p, frequency: e.target.value as any}))} className="flex-1 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors cursor-pointer text-forest-900 font-medium">
+                         <option value="monthly">Monthly</option>
                          <option value="daily">Daily</option>
                          <option value="weekly">Weekly</option>
-                         <option value="monthly">Monthly</option>
                          <option value="bi-monthly">Every 2 Months</option>
                          <option value="quarterly">Quarterly (Every 3 Months)</option>
                          <option value="bi-annually">Half Year (Every 6 Months)</option>
                          <option value="yearly">Yearly (Annual)</option>
                        </select>
-                       <button 
+                       <input type="number" min="1" max="31" placeholder="Day (e.g. 5)" value={newRecurring.dayOfMonth} onChange={e => setNewRecurring(p => ({...p, dayOfMonth: e.target.value}))} className="w-24 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 transition-colors" title="Fixed day of month (e.g. 5th)" />
+                       <button
                          disabled={!newRecurring.name || !newRecurring.amount}
                          onClick={() => {
-                           onAddRecurring?.({ name: newRecurring.name, amount: Number(newRecurring.amount), frequency: newRecurring.frequency as any, nextDueDate: new Date().toISOString().split('T')[0] });
-                           setNewRecurring({name: '', amount: '', frequency: 'monthly'});
+                           onAddRecurring?.({
+                             name: newRecurring.name,
+                             amount: Number(newRecurring.amount),
+                             frequency: newRecurring.frequency as any,
+                             nextDueDate: new Date().toISOString().split('T')[0],
+                             dayOfMonth: newRecurring.dayOfMonth ? Number(newRecurring.dayOfMonth) : undefined
+                           });
+                           setNewRecurring({name: '', amount: '', frequency: 'monthly', dayOfMonth: '5'});
                          }}
                          className="bg-forest-900 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-forest-800 transition-colors text-sm font-medium flex items-center gap-1.5"
                         >

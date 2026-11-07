@@ -120,7 +120,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
       name: "Pro Suite",
       badge: "Power Users & Families",
       badgeColor: "bg-sky-500/10 text-sky-600 border border-sky-500/20",
-      price: { monthly: "KES 1,000/mo", yearly: "KES 10,000/yr", monthlyNum: 1000, yearlyNum: 10000 },
+      price: { monthly: "KES 500/mo", yearly: "KES 5,000/yr", monthlyNum: 500, yearlyNum: 5000 },
       description: "Family & Others document vault, AI OCR scanner & up to 1,000 documents.",
       icon: <Sparkles className="text-sky-500" size={24} />,
       iconBg: "bg-sky-500/10 text-sky-600",
@@ -142,7 +142,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
       name: "Elite",
       badge: "Advanced Features",
       badgeColor: "bg-purple-500/10 text-purple-700 border border-purple-500/20",
-      price: { monthly: "KES 2,000/mo", yearly: "KES 20,000/yr", monthlyNum: 2000, yearlyNum: 20000 },
+      price: { monthly: "KES 1,000/mo", yearly: "KES 10,000/yr", monthlyNum: 1000, yearlyNum: 10000 },
       description: "Advanced analytics, multiple users, and specialized integrations.",
       icon: <Star className="text-purple-600" size={24} />,
       iconBg: "bg-purple-500/10 text-purple-700",
@@ -163,7 +163,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
       name: "Business",
       badge: "Commercial & Teams",
       badgeColor: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20",
-      price: { monthly: "KES 7,000/mo", yearly: "KES 70,000/yr", monthlyNum: 7000, yearlyNum: 70000 },
+      price: { monthly: "KES 5,000/mo", yearly: "KES 50,000/yr", monthlyNum: 5000, yearlyNum: 50000 },
       description: "Complete business compliance, employee records & asset management.",
       icon: <Briefcase className="text-emerald-600" size={24} />,
       iconBg: "bg-emerald-500/10 text-emerald-700",
@@ -499,6 +499,11 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                   </>
                 ) : plan.id === SubscriptionPlan.BASIC ? (
                   <span>Included Free</span>
+                ) : plan.id === SubscriptionPlan.BUSINESS || plan.id === SubscriptionPlan.WINDOWS_BUSINESS ? (
+                  <>
+                    <span>Under Development</span>
+                    <Sparkles size={14} className="text-amber-300" />
+                  </>
                 ) : (
                   <>
                     <span>Upgrade to {plan.name}</span>

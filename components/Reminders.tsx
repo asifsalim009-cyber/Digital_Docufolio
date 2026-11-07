@@ -165,7 +165,7 @@ const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocumen
              </button>
           </div>
       </div>
-      
+
       {/* Content Area */}
       <div className="flex-1 overflow-hidden relative bg-white/40 rounded-3xl border border-white/50 shadow-sm p-1 ring-1 ring-white/20">
          
