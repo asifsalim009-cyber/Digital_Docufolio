@@ -10,6 +10,7 @@ import { useVoiceSearch } from '../useVoiceSearch';
 import { uploadToGoogleDrive } from '../drive';
 import { apiFetch } from '../api';
 import { WalletSecuritySection } from './WalletSecuritySection';
+import { downloadFileHelper } from '../downloadFileHelper';
 
 interface WalletProps {
   profile?: UserProfile;
@@ -124,13 +125,8 @@ const Wallet: React.FC<WalletProps> = ({
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [activeCategory, setActiveCategory] = useState<'PERSONAL' | 'OTHERS' | 'BUSINESS'>('PERSONAL');
 
-  const handleDownload = (url: string, name: string, _mimeType?: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name || 'document';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = (url: string, name: string, mimeType?: string) => {
+    downloadFileHelper(url, name, mimeType || 'application/octet-stream');
   };
 
   const handleDriveUpload = async (url: string, name: string, mimeType?: string) => {
@@ -201,9 +197,80 @@ const Wallet: React.FC<WalletProps> = ({
   const [renewalDate, setRenewalDate] = useState('');
   const [renewalFile, setRenewalFile] = useState<DocumentFile | null>(null);
 
+  // Duplicate Detection State
+  const [duplicateModalInfo, setDuplicateModalInfo] = useState<{
+    existingDoc: StoredDocument;
+    pendingDocData: Partial<StoredDocument>;
+  } | null>(null);
+
+  const handleKeepBothDuplicate = () => {
+    if (!duplicateModalInfo) return;
+    const { pendingDocData } = duplicateModalInfo;
+    const baseName = pendingDocData.customName || pendingDocData.type;
+    const sameTypeCount = (documents || []).filter(d => (d.customName || d.type).startsWith(baseName as string)).length;
+    const suffix = ` (${sameTypeCount + 1})`;
+    const modifiedDoc = {
+      ...pendingDocData,
+      customName: baseName + suffix
+    };
+    setDuplicateModalInfo(null);
+    executeSaveNewDoc(modifiedDoc);
+  };
+
+  const handleCancelDuplicate = () => {
+    setDuplicateModalInfo(null);
+  };
+
   // Group Navigation State (Folder View)
   const [viewingRelation, setViewingRelation] = useState<string | null>(null);
   const [viewingOwner, setViewingOwner] = useState<string | null>(null);
+
+  // Edit Document State
+  const [isEditingDoc, setIsEditingDoc] = useState(false);
+  const [editDocForm, setEditDocForm] = useState<Partial<StoredDocument>>({});
+  const [editDocError, setEditDocError] = useState<string | null>(null);
+
+  const handleStartEditDoc = () => {
+    if (!selectedDoc) return;
+    setEditDocForm({ ...selectedDoc });
+    setIsEditingDoc(true);
+    setEditDocError(null);
+  };
+
+  const handleCancelEditDoc = () => {
+    setIsEditingDoc(false);
+    setEditDocForm({});
+    setEditDocError(null);
+  };
+
+  const handleSaveEditDoc = () => {
+    if (!editDocForm.ownerName || !editDocForm.ownerName.trim()) {
+      setEditDocError("Document owner name is required.");
+      return;
+    }
+    if (!editDocForm.type) {
+      setEditDocError("Document type is required.");
+      return;
+    }
+
+    const updatedDoc: StoredDocument = {
+      ...selectedDoc!,
+      type: editDocForm.type || selectedDoc!.type,
+      ownerName: editDocForm.ownerName.trim(),
+      documentNumber: editDocForm.documentNumber?.trim() || '',
+      expiryDate: editDocForm.expiryDate || '',
+      customName: editDocForm.customName?.trim() || '',
+      customType: editDocForm.customType?.trim() || '',
+    };
+
+    onUpdateDocument(updatedDoc);
+    setSelectedDoc(updatedDoc);
+    setIsEditingDoc(false);
+    setEditDocForm({});
+    setEditDocError(null);
+    setScanMessage("✨ Document updated successfully!");
+    setTimeout(() => setScanMessage(null), 3000);
+  };
 
   // Reset navigation when changing categories
   useEffect(() => {
@@ -769,15 +836,34 @@ const Wallet: React.FC<WalletProps> = ({
       setIsAdding(true);
   };
 
-  const handleSaveNewDoc = async (skipNameCheck: boolean = false) => {
+  const handleSaveNewDoc = async (skipDuplicateCheck: boolean = false) => {
     if (!newDoc.type || !newDoc.ownerName || !newDoc.files?.length) return;
 
-    const currentOwner = (newDoc.ownerName || '').trim();
+    if (!skipDuplicateCheck) {
+      const existing = (documents || []).find(d => {
+        const sameOwner = d.ownerName.toLowerCase() === (newDoc.ownerName || '').toLowerCase();
+        const sameRelation = d.relation === newDoc.relation;
+        const existingName = (d.customName || d.type).toLowerCase();
+        const newName = ((newDoc.customName || newDoc.type) || '').toLowerCase();
+        return sameOwner && sameRelation && existingName === newName;
+      });
+
+      if (existing) {
+        setDuplicateModalInfo({ existingDoc: existing, pendingDocData: newDoc });
+        return;
+      }
+    }
+
+    await executeSaveNewDoc(newDoc);
+  };
+
+  const executeSaveNewDoc = async (docData: Partial<StoredDocument>) => {
+    const currentOwner = (docData.ownerName || '').trim();
     const isOwner = isDocumentOwnerProfile(currentOwner, profile);
-    const isBiz = isBusinessNature(currentOwner, newDoc.type, newDoc.customName) || newDoc.relation === RelationType.BUSINESS || (newDoc.relation as string) === 'BUSINESS';
+    const isBiz = isBusinessNature(currentOwner, docData.type, docData.customName) || docData.relation === RelationType.BUSINESS || (docData.relation as string) === 'BUSINESS';
 
     let docOwner = currentOwner;
-    let docRelation = newDoc.relation || 'SELF';
+    let docRelation = docData.relation || 'SELF';
 
     if (isBiz) {
       docOwner = currentOwner === 'Self' ? (profile?.companyName || 'Business') : currentOwner;
@@ -793,17 +879,17 @@ const Wallet: React.FC<WalletProps> = ({
 
     const docObj: StoredDocument = {
       id: Math.random().toString(36).substr(2, 9),
-      type: newDoc.type,
+      type: docData.type!,
       ownerName: docOwner,
       relation: docRelation,
-      files: newDoc.files,
+      files: docData.files || [],
       dateUploaded: new Date().toISOString(),
-      documentNumber: newDoc.documentNumber,
-      expiryDate: newDoc.expiryDate,
-      customName: newDoc.customName,
-      customType: newDoc.customType,
-      isPrivate: newDoc.isPrivate,
-      syncToGoogleCalendar: newDoc.syncToGoogleCalendar,
+      documentNumber: docData.documentNumber,
+      expiryDate: docData.expiryDate,
+      customName: docData.customName,
+      customType: docData.customType,
+      isPrivate: docData.isPrivate,
+      syncToGoogleCalendar: docData.syncToGoogleCalendar,
       reminderConfig: {
         oneMonth: true,
         twoWeeks: true,
@@ -1128,6 +1214,40 @@ const Wallet: React.FC<WalletProps> = ({
                onCancel={() => setDocToUnlock(null)}
                credentialId={profile?.biometricCredentialId}
            />
+       )}
+       {duplicateModalInfo && (
+           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-forest-950/70 backdrop-blur-md animate-fadeIn">
+               <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-6 text-forest-900 space-y-4">
+                   <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                       <AlertCircle size={24} className="shrink-0" />
+                       <div>
+                           <h4 className="font-bold text-sm">Duplicate Document Detected</h4>
+                           <p className="text-xs text-forest-600 mt-0.5">A document with this name already exists in this folder.</p>
+                       </div>
+                   </div>
+
+                   <p className="text-xs text-forest-600">
+                       Existing document: <span className="font-bold text-forest-900">{duplicateModalInfo.existingDoc.customName || duplicateModalInfo.existingDoc.type}</span> (Holder: {duplicateModalInfo.existingDoc.ownerName})
+                   </p>
+
+                   <div className="flex gap-3 pt-2">
+                       <button
+                           type="button"
+                           onClick={handleCancelDuplicate}
+                           className="flex-1 py-2.5 bg-sand-100 hover:bg-sand-200 text-forest-700 rounded-xl font-bold text-xs transition-colors"
+                       >
+                           Cancel
+                       </button>
+                       <button
+                           type="button"
+                           onClick={handleKeepBothDuplicate}
+                           className="flex-1 py-2.5 bg-forest-900 hover:bg-gold-600 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                       >
+                           Keep Both (with Suffix)
+                       </button>
+                   </div>
+               </div>
+           </div>
        )}
        {/* Compact Header Toolbar */}
        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 shrink-0 bg-white/50 p-3 rounded-xl border border-sand-200 backdrop-blur-sm">
@@ -1709,18 +1829,6 @@ const Wallet: React.FC<WalletProps> = ({
                                 {isScanning ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                                 {isScanning ? 'Scanning...' : 'AI Scan'}
                             </button>
-                            
-                            {/* Voice Button */}
-                            <button 
-                                onClick={handleVoiceCommand}
-                                className={`
-                                  px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all shadow-lg
-                                  ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-white/20 hover:bg-white/30 backdrop-blur-md text-white'}
-                                `}
-                            >
-                                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-                                {isListening ? 'Listening...' : 'Hey Wallet'}
-                            </button>
                        </div>
                        
                        {scanMessage && (
@@ -1735,12 +1843,98 @@ const Wallet: React.FC<WalletProps> = ({
                        <div className="flex justify-between items-start mb-6">
                            <div>
                                <p className="text-xs font-bold text-gold-600 uppercase tracking-wider mb-1">{selectedDoc.type}</p>
-                               <h2 className="text-2xl font-display font-bold text-forest-900 leading-tight">{selectedDoc.customName || selectedDoc.type}</h2>
+                               <h2 className="text-2xl font-display font-bold text-forest-900 leading-tight">
+                                 {isEditingDoc ? 'Edit Document' : (selectedDoc.customName || selectedDoc.type)}
+                               </h2>
                            </div>
-                           <button onClick={() => setSelectedDoc(null)} className="p-2 bg-sand-50 rounded-full hover:bg-sand-100 transition-colors text-forest-500">
+                           <button onClick={() => { setSelectedDoc(null); setIsEditingDoc(false); }} className="p-2 bg-sand-50 rounded-full hover:bg-sand-100 transition-colors text-forest-500">
                                <X size={20} />
                            </button>
                        </div>
+
+                       {editDocError && (
+                         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-bold flex items-center gap-2">
+                           <AlertCircle size={16} /> {editDocError}
+                         </div>
+                       )}
+
+                       {isEditingDoc ? (
+                         <div className="space-y-4 flex-1">
+                           <div>
+                             <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Document Type *</label>
+                             <select
+                               className="w-full bg-white border border-sand-300 rounded-lg p-2.5 text-sm text-forest-900 focus:outline-none focus:border-gold-500 font-medium"
+                               value={editDocForm.type || selectedDoc.type}
+                               onChange={(e) => setEditDocForm(prev => ({ ...prev, type: e.target.value as DocumentType }))}
+                             >
+                               {DOCUMENT_TYPES_LIST.map(t => <option key={t} value={t}>{t}</option>)}
+                             </select>
+                           </div>
+
+                           {editDocForm.type === DocumentType.OTHER_DOCUMENT && (
+                             <div>
+                               <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Custom Type Name</label>
+                               <input
+                                 className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                                 value={editDocForm.customType || ''}
+                                 onChange={(e) => setEditDocForm(prev => ({ ...prev, customType: e.target.value }))}
+                               />
+                             </div>
+                           )}
+
+                           <div>
+                             <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Document Name (Optional)</label>
+                             <input
+                               className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                               value={editDocForm.customName || ''}
+                               onChange={(e) => setEditDocForm(prev => ({ ...prev, customName: e.target.value }))}
+                             />
+                           </div>
+
+                           <div>
+                             <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Owner Name *</label>
+                             <input
+                               className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                               value={editDocForm.ownerName || ''}
+                               onChange={(e) => setEditDocForm(prev => ({ ...prev, ownerName: e.target.value }))}
+                             />
+                           </div>
+
+                           <div>
+                             <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Document Number</label>
+                             <input
+                               className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                               value={editDocForm.documentNumber || ''}
+                               onChange={(e) => setEditDocForm(prev => ({ ...prev, documentNumber: e.target.value }))}
+                             />
+                           </div>
+
+                           <div>
+                             <label className="block text-xs font-bold text-forest-500 uppercase mb-1">Expiry Date</label>
+                             <input
+                               type="date"
+                               className="w-full bg-white border border-sand-300 rounded-lg p-2 text-sm text-forest-900 focus:outline-none focus:border-gold-500"
+                               value={editDocForm.expiryDate || ''}
+                               onChange={(e) => setEditDocForm(prev => ({ ...prev, expiryDate: e.target.value }))}
+                             />
+                           </div>
+
+                           <div className="pt-4 flex gap-3">
+                             <button
+                               onClick={handleCancelEditDoc}
+                               className="flex-1 py-2.5 bg-sand-100 hover:bg-sand-200 text-forest-700 rounded-xl font-bold text-sm transition-colors"
+                             >
+                               Cancel
+                             </button>
+                             <button
+                               onClick={handleSaveEditDoc}
+                               className="flex-1 py-2.5 bg-forest-900 hover:bg-gold-600 text-white rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-1.5"
+                             >
+                               <Save size={16} /> Save Changes
+                             </button>
+                           </div>
+                         </div>
+                       ) : (
 
                        <div className="space-y-6 flex-1">
                            <div className="grid grid-cols-2 gap-4">
@@ -1813,10 +2007,19 @@ const Wallet: React.FC<WalletProps> = ({
                                )}
                            </div>
                        </div>
+                       )}
 
-                                              {/* Footer Actions */}
+                       {/* Footer Actions */}
+                       {!isEditingDoc && (
                         <div className="mt-6 pt-5 border-t border-sand-100 flex items-center justify-between gap-2 shrink-0">
                             <div className="flex items-center gap-2 flex-wrap">
+                                <button
+                                    onClick={handleStartEditDoc}
+                                    className="px-3.5 py-2 bg-sky-600 text-white rounded-xl font-bold text-xs hover:bg-sky-500 flex items-center gap-1.5 transition-all shadow-sm"
+                                    title="Edit Document"
+                                >
+                                    <Save size={14} /> Edit
+                                </button>
                                 <button
                                     onClick={() => handleOpenShare(selectedDoc)}
                                     className="px-3.5 py-2 bg-forest-900 text-white rounded-xl font-bold text-xs hover:bg-gold-600 flex items-center gap-1.5 transition-all shadow-sm"
@@ -1852,6 +2055,7 @@ const Wallet: React.FC<WalletProps> = ({
                                 <Trash2 size={14} /> <span className="hidden sm:inline">Delete</span>
                             </button>
                         </div>
+                       )}
                    </div>
                </div>
            </div>
