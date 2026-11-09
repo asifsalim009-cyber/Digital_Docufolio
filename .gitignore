@@ -6,11 +6,26 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+server.err
 
+# Build & Dependencies
 node_modules
 dist
 dist-ssr
 *.local
+
+# Archives & Bundles
+*.zip
+*.tar
+*.gz
+*.bundle
+
+# Android local config
+local.properties
+.gradle
+android/.gradle
+android/app/build
+android/build
 
 # Editor directories and files
 .vscode/*
