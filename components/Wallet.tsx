@@ -1404,14 +1404,14 @@ const Wallet: React.FC<WalletProps> = ({
 
        {/* Scrollable Content Area */}
        <div className="flex-1 overflow-y-auto pb-20 custom-scrollbar pr-2">
-           {/* Hardware-Backed AES-256-GCM Vault Security & Encryption Control */}
+           {/* Hardware-Backed AES-256-GCM Vault Security Status */}
            <WalletSecuritySection
                documents={documents}
                onDocumentsMigrated={onDocumentsMigrated}
                onVaultUnlocked={onVaultStateChange}
                onVaultLocked={onVaultStateChange}
            />
-           
+
            {/* View: Personal Grid */}
            {activeCategory === 'PERSONAL' && (
                <>

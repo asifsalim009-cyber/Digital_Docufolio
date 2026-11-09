@@ -67,15 +67,6 @@ subprojects {
                         namespace = "com.capacitorjs.plugin." + project.name.replaceAll('[^A-Za-z0-9_]', '_')
                     }
                 }
-                // Configure publishing single variant for AGP 8 strict variant resolution
-                if (extensions.findByName('publishing') != null || hasProperty('libraryVariants')) {
-                    publishing {
-                        singleVariant("release") {
-                            withSourcesJar()
-                            withJavadocJar()
-                        }
-                    }
-                }
             }
         }
     }
