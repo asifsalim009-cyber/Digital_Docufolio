@@ -23,7 +23,8 @@ import {
   Clock,
   Shield,
   Layers,
-  FileCheck
+  FileCheck,
+  ExternalLink
 } from 'lucide-react';
 import { SubscriptionPlan } from '../types';
 import { Capacitor } from '@capacitor/core';
@@ -261,12 +262,10 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
     }, 2800);
   };
 
-  const triggerDownloadExe = async () => {
-    // Generate a downloadable setup installer stub
-    const fileData = `Digital DocuFolio Windows Desktop Setup v2.4.0\nOfficial Offline Installer for Windows 10/11 (64-bit)\nBuild Date: 2026-08-26\nVerify SHA256: 8f4e2b7a9c1d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f\n\nInstructions:\n1. Run DigitalDocuFolio-Setup-v2.4.0-x64.exe\n2. Sign in with your registered account (${phoneNumber || 'your email'})\n3. Enjoy high-speed hardware scanning and offline document encryption.`;
-    
-    const blob = new Blob([fileData], { type: 'application/octet-stream' });
-    await downloadFileHelper(blob, 'DigitalDocuFolio-Setup-v2.4.0-x64.exe', 'application/octet-stream');
+  const OFFICIAL_WINDOWS_URL = 'https://aeroscankenya.co.ke/docufolio';
+
+  const triggerDownloadExe = () => {
+    window.open(OFFICIAL_WINDOWS_URL, '_blank', 'noopener,noreferrer');
   };
 
   const faqs = [
@@ -276,7 +275,7 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
     },
     {
       q: "How do I install and activate the Windows Desktop version?",
-      a: "You can download the Windows installer (.exe) directly from this page. After downloading and running the setup, simply log in with your Digital DocuFolio account to link your cloud documents and unlock native hardware scanning."
+      a: "You can download the Windows installer (.exe) directly from our official portal at https://aeroscankenya.co.ke/docufolio. After downloading and running the setup, upgrade to Windows Individual to activate your license and unlock native hardware flatbed/USB scanning, AES-256 local database encryption, and automatic desktop background sync."
     },
     {
       q: "Can I switch or cancel my plan anytime?",
@@ -376,12 +375,22 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
               <button
-                onClick={() => setShowDownloadModal(true)}
-                className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white hover:bg-blue-50 text-blue-900 rounded-2xl font-bold text-sm shadow-lg transition-all transform hover:-translate-y-0.5"
+                onClick={() => handleSelectPlan(windowsPlans[0])}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-forest-950 font-extrabold rounded-2xl text-sm shadow-lg shadow-amber-500/25 transition-all transform hover:-translate-y-0.5"
               >
-                <Download size={18} className="text-blue-600" />
-                <span>Download Windows (.exe)</span>
+                <Sparkles size={17} className="text-forest-950" />
+                <span>Upgrade to Windows Individual</span>
               </button>
+              <a
+                href={OFFICIAL_WINDOWS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-white hover:bg-blue-50 text-blue-900 rounded-2xl font-bold text-sm shadow-lg transition-all transform hover:-translate-y-0.5"
+              >
+                <Download size={17} className="text-blue-600" />
+                <span>Download Windows (.exe)</span>
+                <ExternalLink size={14} className="text-blue-500" />
+              </a>
             </div>
           </div>
         </div>
@@ -505,6 +514,20 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                   </>
                 )}
               </button>
+
+              {/* Direct Windows (.exe) Download Link for Windows Individual */}
+              {plan.id === SubscriptionPlan.WINDOWS_INDIVIDUAL && (
+                <a
+                  href={OFFICIAL_WINDOWS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2.5 w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-900 font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <Download size={14} className="text-blue-600" />
+                  <span>Download Windows (.exe)</span>
+                  <ExternalLink size={13} className="text-blue-500" />
+                </a>
+              )}
             </div>
           );
         })}
@@ -833,14 +856,22 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                 </ul>
               </div>
 
-              <div className="p-4 bg-sand-50 rounded-2xl border border-sand-200 text-xs space-y-1">
+              <div className="p-4 bg-sand-50 rounded-2xl border border-sand-200 text-xs space-y-1.5">
+                <div className="flex justify-between items-center text-forest-500 font-mono">
+                  <span>Portal:</span>
+                  <a 
+                    href={OFFICIAL_WINDOWS_URL}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    aeroscankenya.co.ke/docufolio
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
                 <div className="flex justify-between text-forest-500 font-mono">
                   <span>File:</span>
                   <span className="font-bold text-forest-800">DigitalDocuFolio-Setup-v2.4.0-x64.exe</span>
-                </div>
-                <div className="flex justify-between text-forest-500 font-mono">
-                  <span>Size:</span>
-                  <span className="font-bold text-forest-800">42.8 MB</span>
                 </div>
                 <div className="flex justify-between text-forest-500 font-mono">
                   <span>Architecture:</span>
@@ -848,16 +879,30 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  triggerDownloadExe();
-                  setShowDownloadModal(false);
-                }}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/30 transition-all text-sm sm:text-base flex items-center justify-center gap-2.5"
-              >
-                <Download size={18} />
-                <span>Start .exe Download Now</span>
-              </button>
+              <div className="space-y-2.5">
+                <a
+                  href={OFFICIAL_WINDOWS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowDownloadModal(false)}
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/30 transition-all text-sm sm:text-base flex items-center justify-center gap-2.5"
+                >
+                  <Download size={18} />
+                  <span>Download Windows (.exe)</span>
+                  <ExternalLink size={16} className="opacity-80" />
+                </a>
+
+                <button
+                  onClick={() => {
+                    setShowDownloadModal(false);
+                    handleSelectPlan(windowsPlans[0]);
+                  }}
+                  className="w-full py-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-2xl font-bold transition-all text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <Sparkles size={16} className="text-amber-600" />
+                  <span>Upgrade to Windows Individual</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

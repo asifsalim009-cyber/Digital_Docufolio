@@ -24,7 +24,9 @@ import {
   ChevronRight,
   ShieldCheck,
   Download,
-  Video
+  Video,
+  Monitor,
+  ExternalLink
 } from 'lucide-react';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
@@ -556,6 +558,47 @@ const Settings: React.FC<SettingsProps> = ({
                       </button>
                     </div>
                   )}
+                </div>
+
+                {/* Windows Desktop Edition Section */}
+                <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden border border-blue-700/50">
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="space-y-1 text-center sm:text-left">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 text-[11px] font-bold">
+                        <Monitor size={13} />
+                        <span>Windows 10 & 11 (64-bit)</span>
+                      </div>
+                      <h4 className="font-bold text-white text-base">Windows Desktop Native Edition</h4>
+                      <p className="text-blue-200 text-xs max-w-md">
+                        Offline AES-256 local database, direct USB/flatbed hardware scanning, and system tray quick capture.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-center">
+                      <button
+                        onClick={() => {
+                          if (onUpgrade) {
+                            onUpgrade(SubscriptionPlan.WINDOWS_INDIVIDUAL);
+                          } else {
+                            setActiveTab('plan');
+                          }
+                        }}
+                        className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-forest-950 rounded-xl text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition-all"
+                      >
+                        <Sparkles size={14} className="text-forest-950" />
+                        <span>Upgrade to Windows Individual</span>
+                      </button>
+                      <a
+                        href="https://aeroscankenya.co.ke/docufolio"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-white hover:bg-blue-50 text-blue-900 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                      >
+                        <Download size={14} className="text-blue-600" />
+                        <span>Download Windows (.exe)</span>
+                        <ExternalLink size={12} className="text-blue-400" />
+                      </a>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Data & Backup */}
