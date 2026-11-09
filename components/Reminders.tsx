@@ -8,6 +8,7 @@ import {
   syncTaskToGoogleCalendar,
   openGoogleCalendarUrl
 } from '../notificationService';
+import { downloadFileHelper } from '../downloadFileHelper';
 
 interface RemindersProps {
   documents: StoredDocument[];
@@ -420,14 +421,16 @@ const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocumen
                        <h3 className="font-bold text-lg truncate max-w-[200px] md:max-w-md">{previewFile.name}</h3>
                    </div>
                    <div className="flex items-center gap-3">
-                      <a 
-                        href={previewFile.url} 
-                        download={previewFile.name}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 px-4 py-2 bg-gold-600 hover:bg-gold-500 text-white rounded-lg transition-colors font-bold text-sm shadow-lg shadow-gold-600/20"
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadFileHelper(previewFile.url, previewFile.name, previewFile.mimeType);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-gold-600 hover:bg-gold-500 text-white rounded-lg transition-colors font-bold text-sm shadow-lg shadow-gold-600/20 cursor-pointer"
+                        title="Save to Device"
                       >
                         <Download size={18} /> <span className="hidden sm:inline">Download</span>
-                      </a>
+                      </button>
                       <button 
                         onClick={() => setPreviewFile(null)}
                         className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-bold text-sm"
@@ -457,13 +460,13 @@ const Reminders: React.FC<RemindersProps> = ({ documents, tasks, onUpdateDocumen
                              <FileText size={64} className="mb-6 opacity-50" />
                              <p className="text-xl font-bold text-white mb-2">Preview not available</p>
                              <p className="text-sm">This file type cannot be previewed directly.</p>
-                             <a 
-                                href={previewFile.url} 
-                                download={previewFile.name}
-                                className="mt-6 px-6 py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                             <button 
+                                onClick={() => downloadFileHelper(previewFile.url, previewFile.name, previewFile.mimeType)}
+                                className="mt-6 px-6 py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 cursor-pointer"
                              >
-                                 Download to View
-                             </a>
+                                 <Download size={18} />
+                                 <span>Download to View</span>
+                             </button>
                           </div>
                        )}
                    </div>

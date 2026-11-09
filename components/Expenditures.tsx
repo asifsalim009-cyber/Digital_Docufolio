@@ -1,11 +1,12 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Expenditure, Budget, RecurringExpense, UserProfile, SubscriptionPlan } from '../types';
-import { Receipt, Search, Plus, Save, X, Calendar, Hash, CheckCircle, AlertCircle, Upload, PieChart, FileText, Camera, Loader2, Trash, Download, Lock, Mic, MicOff, Sparkles, Bot, Repeat, ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
+import { Receipt, Search, Plus, Save, X, Calendar, Hash, CheckCircle, AlertCircle, Upload, PieChart, FileText, Camera, Loader2, Trash, Download, Lock, Mic, MicOff, Sparkles, Bot, Repeat, ChevronDown, ChevronUp, Maximize2, Minimize2, ArrowLeft, Check } from 'lucide-react';
 import { useVoiceSearch } from '../useVoiceSearch';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { apiFetch } from '../api';
+import { downloadFileHelper } from '../downloadFileHelper';
 
 interface ExpendituresProps {
   profile?: UserProfile;
@@ -47,6 +48,7 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   const [exportRange, setExportRange] = useState<'this_month' | 'last_month' | 'this_week' | 'custom'>('this_month');
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   const [addMode, setAddMode] = useState<'mpesa' | 'receipt' | 'manual'>('mpesa');
   const [rawMessage, setRawMessage] = useState('');
@@ -64,8 +66,11 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
-  // Mobile Collapsible & Enlarged View States
-  const [isMobileEnlarged, setIsMobileEnlarged] = useState(false);
+  // Individual Maximized Pages State
+  const [maximizedPage, setMaximizedPage] = useState<Tab | null>(null);
+  const [txnTypeFilter, setTxnTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
+
+  // Mobile Collapsible Section States
   const [isBalanceCollapsed, setIsBalanceCollapsed] = useState(false);
   const [isBudgetsCollapsed, setIsBudgetsCollapsed] = useState(false);
   const [isRecurringCollapsed, setIsRecurringCollapsed] = useState(false);
@@ -374,11 +379,27 @@ const Expenditures: React.FC<ExpendituresProps> = ({
   };
 
   const filteredExpenditures = useMemo(() => {
-    return expenditures.filter(exp =>
-      exp.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.reference.toLowerCase().includes(searchQuery.toLowerCase())
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenditures, searchQuery]);
+    return (expenditures || []).filter(exp => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q ||
+        (exp.recipient || '').toLowerCase().includes(q) ||
+        (exp.reference || '').toLowerCase().includes(q) ||
+        (exp.paymentFor || '').toLowerCase().includes(q);
+      const matchesType = txnTypeFilter === 'all' || exp.type === txnTypeFilter;
+      return matchesSearch && matchesType;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [expenditures, searchQuery, txnTypeFilter]);
+
+  const totalBudgetAllocated = useMemo(() => {
+    return (budgets || []).reduce((sum, b) => sum + (b.amount || 0), 0);
+  }, [budgets]);
+
+  const totalBudgetSpent = useMemo(() => {
+    return (budgets || []).reduce((sum, b) => {
+      const spent = (expenditures || []).filter(exp => exp.recipient.toLowerCase().includes(b.category.toLowerCase())).reduce((s, exp) => s + exp.amount, 0);
+      return sum + spent;
+    }, 0);
+  }, [budgets, expenditures]);
 
 
   const groupedExpenditures = useMemo(() => {
@@ -412,147 +433,149 @@ const Expenditures: React.FC<ExpendituresProps> = ({
     }, 0);
   }, [recurringExpenses]);
 
-  const handleGenerateReport = () => {
-    // 1. Filter expenditures by date
-    let filtered = [...expenditures];
-    const now = new Date();
-    let titleRange = '';
+  const handleGenerateReport = async () => {
+    setIsExporting(true);
+    try {
+      // 1. Filter expenditures by date
+      let filtered = [...expenditures];
+      const now = new Date();
+      let titleRange = '';
 
-    if (exportRange === 'this_month') {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      filtered = filtered.filter(e => e.date >= startOfMonth);
-      titleRange = 'This Month';
-    } else if (exportRange === 'last_month') {
-      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-      filtered = filtered.filter(e => e.date >= startOfLastMonth && e.date <= endOfLastMonth);
-      titleRange = 'Last Month';
-    } else if (exportRange === 'this_week') {
-      const firstDay = now.getDate() - now.getDay();
-      const startOfWeek = new Date(now.setDate(firstDay)).toISOString().split('T')[0];
-      filtered = filtered.filter(e => e.date >= startOfWeek);
-      titleRange = 'This Week';
-    } else if (exportRange === 'custom') {
-      if (exportStartDate) filtered = filtered.filter(e => e.date >= exportStartDate);
-      if (exportEndDate) filtered = filtered.filter(e => e.date <= exportEndDate);
-      titleRange = `${exportStartDate || 'Start'} to ${exportEndDate || 'End'}`;
+      if (exportRange === 'this_month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        filtered = filtered.filter(e => e.date >= startOfMonth);
+        titleRange = 'This Month';
+      } else if (exportRange === 'last_month') {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+        filtered = filtered.filter(e => e.date >= startOfLastMonth && e.date <= endOfLastMonth);
+        titleRange = 'Last Month';
+      } else if (exportRange === 'this_week') {
+        const firstDay = now.getDate() - now.getDay();
+        const startOfWeek = new Date(now.setDate(firstDay)).toISOString().split('T')[0];
+        filtered = filtered.filter(e => e.date >= startOfWeek);
+        titleRange = 'This Week';
+      } else if (exportRange === 'custom') {
+        if (exportStartDate) filtered = filtered.filter(e => e.date >= exportStartDate);
+        if (exportEndDate) filtered = filtered.filter(e => e.date <= exportEndDate);
+        titleRange = `${exportStartDate || 'Start'} to ${exportEndDate || 'End'}`;
+      }
+
+      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const total = filtered.reduce((sum, exp) => sum + exp.amount, 0);
+
+      const userName = profile?.fullName || 'User';
+      const userEmail = profile?.email || '';
+      const company = profile?.companyName || '';
+      
+      if (exportFormat === 'pdf') {
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(18);
+        doc.text('Expenditure Report', 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        let startY = 32;
+        doc.text(`Name: ${userName}`, 14, startY);
+        if (company) { startY += 6; doc.text(`Company: ${company}`, 14, startY); }
+        if (userEmail) { startY += 6; doc.text(`Email: ${userEmail}`, 14, startY); }
+        startY += 6;
+        doc.text(`Period: ${titleRange}`, 14, startY);
+        startY += 6;
+        doc.text(`Generated On: ${new Date().toLocaleDateString()}`, 14, startY);
+        
+        startY += 10;
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Total Expenditures: Ksh ${total.toLocaleString(undefined, {minimumFractionDigits:2})}`, 14, startY);
+        
+        const tableData = filtered.map(exp => {
+          const itemsStr = exp.purchasedItems ? exp.purchasedItems.map(i => `${i.name} (${i.amount})`).join(', ') : '';
+          return [
+            exp.date,
+            exp.type === 'income' ? 'Income' : 'Expense',
+            exp.recipient,
+            exp.paymentFor || '',
+            `Ksh ${exp.amount.toLocaleString(undefined, {minimumFractionDigits:2})}`,
+            exp.paymentMethod || 'Unknown',
+            exp.reference,
+            itemsStr
+          ];
+        });
+
+        autoTable(doc, {
+          startY: startY + 5,
+          head: [['Date', 'Type', 'Recipient/Sender', 'Payment For', 'Amount', 'Payment Method', 'Reference', 'Items']],
+          body: tableData,
+          theme: 'striped',
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [44, 94, 62] } // forest-800 approx
+        });
+
+        const filename = `Expenditure_Report_${titleRange.replace(/ /g, '_')}.pdf`;
+        const pdfDataUri = doc.output('datauristring');
+        await downloadFileHelper(pdfDataUri, filename, 'application/pdf');
+      } else {
+        // Excel
+        const wsData: any[][] = [];
+        
+        // Header rows
+        wsData.push(['Expenditure Report']);
+        wsData.push(['Name', userName]);
+        if (company) wsData.push(['Company', company]);
+        if (userEmail) wsData.push(['Email', userEmail]);
+        wsData.push(['Period', titleRange]);
+        wsData.push(['Generated On', new Date().toLocaleDateString()]);
+        wsData.push(['Total Income', `Ksh ${totalIncome.toLocaleString(undefined, {minimumFractionDigits:2})}`]);
+        wsData.push(['Total Expenses', `Ksh ${totalExpense.toLocaleString(undefined, {minimumFractionDigits:2})}`]);
+        wsData.push(['Balance', `Ksh ${totalBalance.toLocaleString(undefined, {minimumFractionDigits:2})}`]);
+        wsData.push([]);
+        
+        // Table Header
+        wsData.push(['Date', 'Time', 'Type', 'Recipient/Sender', 'Payment For', 'Amount', 'Payment Method', 'Reference', 'Items']);
+        
+        filtered.forEach(exp => {
+          const itemsStr = exp.purchasedItems ? exp.purchasedItems.map(i => `${i.name} (${i.amount})`).join(', ') : '';
+          wsData.push([
+            exp.date,
+            exp.time || '',
+            exp.type === 'income' ? 'Income' : 'Expense',
+            exp.recipient,
+            exp.paymentFor || '',
+            exp.amount,
+            exp.paymentMethod || 'Unknown',
+            exp.reference,
+            itemsStr
+          ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Expenditures");
+        
+        const filename = `Expenditure_Report_${titleRange.replace(/ /g, '_')}.xlsx`;
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        const dataUri = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${wbout}`;
+        await downloadFileHelper(dataUri, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      }
+
+      setShowExportModal(false);
+    } catch (err) {
+      console.error('Error generating and saving report:', err);
+      alert('Unable to generate or save report. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
-
-    filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const total = filtered.reduce((sum, exp) => sum + exp.amount, 0);
-
-    const userName = profile?.fullName || 'User';
-    const userEmail = profile?.email || '';
-    const company = profile?.companyName || '';
-    
-    if (exportFormat === 'pdf') {
-      const doc = new jsPDF();
-      
-      // Header
-      doc.setFontSize(18);
-      doc.text('Expenditure Report', 14, 22);
-      
-      doc.setFontSize(11);
-      doc.setTextColor(100);
-      let startY = 32;
-      doc.text(`Name: ${userName}`, 14, startY);
-      if (company) { startY += 6; doc.text(`Company: ${company}`, 14, startY); }
-      if (userEmail) { startY += 6; doc.text(`Email: ${userEmail}`, 14, startY); }
-      startY += 6;
-      doc.text(`Period: ${titleRange}`, 14, startY);
-      startY += 6;
-      doc.text(`Generated On: ${new Date().toLocaleDateString()}`, 14, startY);
-      
-      startY += 10;
-      doc.setFontSize(12);
-      doc.setTextColor(0);
-      doc.text(`Total Expenditures: Ksh ${total.toLocaleString(undefined, {minimumFractionDigits:2})}`, 14, startY);
-      
-      const tableData = filtered.map(exp => {
-        const itemsStr = exp.purchasedItems ? exp.purchasedItems.map(i => `${i.name} (${i.amount})`).join(', ') : '';
-        return [
-          exp.date,
-          exp.type === 'income' ? 'Income' : 'Expense',
-          exp.recipient,
-          exp.paymentFor || '',
-          `Ksh ${exp.amount.toLocaleString(undefined, {minimumFractionDigits:2})}`,
-          exp.paymentMethod || 'Unknown',
-          exp.reference,
-          itemsStr
-        ];
-      });
-
-      autoTable(doc, {
-        startY: startY + 5,
-        head: [['Date', 'Type', 'Recipient/Sender', 'Payment For', 'Amount', 'Payment Method', 'Reference', 'Items']],
-        body: tableData,
-        theme: 'striped',
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [44, 94, 62] } // forest-800 approx
-      });
-
-      doc.save(`Expenditure_Report_${titleRange.replace(/ /g, '_')}.pdf`);
-    } else {
-      // Excel
-      const wsData: any[][] = [];
-      
-      // Header rows
-      wsData.push(['Expenditure Report']);
-      wsData.push(['Name', userName]);
-      if (company) wsData.push(['Company', company]);
-      if (userEmail) wsData.push(['Email', userEmail]);
-      wsData.push(['Period', titleRange]);
-      wsData.push(['Generated On', new Date().toLocaleDateString()]);
-      wsData.push(['Total Income', `Ksh ${totalIncome.toLocaleString(undefined, {minimumFractionDigits:2})}`]);
-      wsData.push(['Total Expenses', `Ksh ${totalExpense.toLocaleString(undefined, {minimumFractionDigits:2})}`]);
-      wsData.push(['Balance', `Ksh ${totalBalance.toLocaleString(undefined, {minimumFractionDigits:2})}`]);
-      wsData.push([]);
-      
-      // Table Header
-      wsData.push(['Date', 'Time', 'Type', 'Recipient/Sender', 'Payment For', 'Amount', 'Payment Method', 'Reference', 'Items']);
-      
-      filtered.forEach(exp => {
-        const itemsStr = exp.purchasedItems ? exp.purchasedItems.map(i => `${i.name} (${i.amount})`).join(', ') : '';
-        wsData.push([
-          exp.date,
-          exp.time || '',
-          exp.type === 'income' ? 'Income' : 'Expense',
-          exp.recipient,
-          exp.paymentFor || '',
-          exp.amount,
-          exp.paymentMethod || 'Unknown',
-          exp.reference,
-          itemsStr
-        ]);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Expenditures");
-      
-      XLSX.writeFile(wb, `Expenditure_Report_${titleRange.replace(/ /g, '_')}.xlsx`);
-    }
-
-    setShowExportModal(false);
   };
 
   return (
-    <div className={`h-full flex flex-col animate-fadeIn relative p-2 ${isMobileEnlarged ? 'fixed inset-0 z-40 bg-sand-50/98 backdrop-blur-md p-3 sm:p-6 overflow-y-auto' : ''}`}>
+    <div className="h-full flex flex-col animate-fadeIn relative p-2">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-        <div className="flex justify-between items-center w-full sm:w-auto">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-forest-900 mb-0.5 sm:mb-1">Finances</h2>
-            <p className="text-forest-500 text-xs sm:text-sm">Track expenses, budgets, and statements.</p>
-          </div>
-          {/* Mobile Enlarge / Collapse View Button */}
-          <button
-            onClick={() => setIsMobileEnlarged(!isMobileEnlarged)}
-            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-forest-900 text-white rounded-xl text-xs font-bold shadow-md hover:bg-gold-600 transition-all shrink-0"
-            title={isMobileEnlarged ? "Collapse to standard view" : "Enlarge view on mobile"}
-          >
-            {isMobileEnlarged ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            <span>{isMobileEnlarged ? "Collapse" : "Enlarge View"}</span>
-          </button>
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-forest-900 mb-0.5 sm:mb-1">Finances</h2>
+          <p className="text-forest-500 text-xs sm:text-sm">Track expenses, budgets, and statements.</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           <button 
@@ -581,19 +604,30 @@ const Expenditures: React.FC<ExpendituresProps> = ({
         </div>
       </div>
 
-      <div className="flex border-b border-sand-200 mb-4 sm:mb-6 space-x-4 sm:space-x-6">
-        {(['transactions', 'budget', 'statements'] as Tab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`pb-3 text-sm sm:text-base font-bold transition-colors relative capitalize flex items-center gap-1.5 ${activeTab === tab ? 'text-forest-900' : 'text-forest-400 hover:text-forest-600'}`}
-          >
-            <span>{tab}</span>
-            {activeTab === tab && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-forest-900 rounded-t-full"></span>
-            )}
-          </button>
-        ))}
+      <div className="flex border-b border-sand-200 mb-4 sm:mb-6 items-center justify-between gap-2">
+        <div className="flex space-x-4 sm:space-x-6 overflow-x-auto">
+          {(['transactions', 'budget', 'statements'] as Tab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 text-sm sm:text-base font-bold transition-colors relative capitalize flex items-center gap-1.5 shrink-0 ${activeTab === tab ? 'text-forest-900' : 'text-forest-400 hover:text-forest-600'}`}
+            >
+              <span>{tab}</span>
+              {activeTab === tab && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-forest-900 rounded-t-full"></span>
+              )}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setMaximizedPage(activeTab)}
+          className="pb-3 text-xs sm:text-sm font-bold text-forest-800 hover:text-gold-600 flex items-center gap-1.5 transition-colors shrink-0 bg-sand-100 hover:bg-sand-200 px-3 py-1.5 rounded-xl border border-sand-200 mb-1"
+          title={`Open individual maximized page for ${activeTab}`}
+        >
+          <Maximize2 size={13} />
+          <span className="hidden sm:inline">Maximize {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Page</span>
+          <span className="sm:hidden">Maximize Page</span>
+        </button>
       </div>
 
       {activeTab === 'transactions' && (
@@ -1007,13 +1041,23 @@ const Expenditures: React.FC<ExpendituresProps> = ({
                  <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
                </label>
                {pdfUrl && (
-                 <button
-                   onClick={() => setPdfUrl(null)}
-                   className="p-2.5 text-forest-400 hover:text-red-500 rounded-xl hover:bg-sand-100 transition-colors"
-                   title="Clear Statement"
-                 >
-                   <X size={18} />
-                 </button>
+                 <>
+                   <button
+                     onClick={() => downloadFileHelper(pdfUrl, 'Bank_Statement.pdf', 'application/pdf')}
+                     className="px-3 py-2 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 border border-sand-300"
+                     title="Download Statement"
+                   >
+                     <Download size={15} />
+                     <span className="hidden sm:inline">Download</span>
+                   </button>
+                   <button
+                     onClick={() => setPdfUrl(null)}
+                     className="p-2.5 text-forest-400 hover:text-red-500 rounded-xl hover:bg-sand-100 transition-colors"
+                     title="Clear Statement"
+                   >
+                     <X size={18} />
+                   </button>
+                 </>
                )}
              </div>
           </div>
@@ -1037,9 +1081,572 @@ const Expenditures: React.FC<ExpendituresProps> = ({
         </div>
       )}
 
+      {/* Individual Maximized Page View (Transactions, Budget, Statement) */}
+      {maximizedPage && (
+        <div className="fixed inset-0 z-50 bg-[#F8F9FA] flex flex-col overflow-hidden animate-fadeIn">
+          {/* Top Sticky App Header */}
+          <header className="bg-forest-900 text-white px-3 sm:px-6 py-3 flex items-center justify-between gap-3 shadow-md shrink-0 z-20 border-b border-forest-800">
+            <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+              <button
+                onClick={() => setMaximizedPage(null)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white font-bold text-xs sm:text-sm shrink-0 border border-white/10"
+                title="Back to Finances Overview"
+              >
+                <ArrowLeft size={16} />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+              <div className="min-w-0 truncate">
+                <h2 className="font-display font-bold text-base sm:text-lg text-white flex items-center gap-2 capitalize truncate">
+                  {maximizedPage === 'transactions' && <><Receipt size={18} className="text-gold-400 shrink-0" /> Transactions Page (Maximized)</>}
+                  {maximizedPage === 'budget' && <><PieChart size={18} className="text-gold-400 shrink-0" /> Budget & Recurring Page (Maximized)</>}
+                  {maximizedPage === 'statements' && <><FileText size={18} className="text-gold-400 shrink-0" /> Statements Page (Maximized)</>}
+                </h2>
+                <p className="text-[11px] text-forest-300 hidden md:block">Scrollable full-page view for unlimited multiple entries</p>
+              </div>
+            </div>
+
+            {/* Segmented Page Switcher */}
+            <div className="flex bg-forest-950/70 p-1 rounded-xl border border-white/10 shrink-0">
+              {(['transactions', 'budget', 'statements'] as Tab[]).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setMaximizedPage(tab)}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize flex items-center gap-1.5 ${maximizedPage === tab ? 'bg-gold-500 text-forest-950 shadow-sm' : 'text-slate-300 hover:text-white'}`}
+                >
+                  {tab === 'transactions' && <Receipt size={13} />}
+                  {tab === 'budget' && <PieChart size={13} />}
+                  {tab === 'statements' && <FileText size={13} />}
+                  <span className="hidden sm:inline capitalize">{tab}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Contextual Actions & Exit */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {maximizedPage === 'transactions' && (
+                <>
+                  <button
+                    onClick={() => { setShowAiModal(true); setAiQuery(''); setAiAnswer(null); }}
+                    className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-gold-500/20 text-gold-300 hover:bg-gold-500/30 rounded-xl text-xs font-bold transition-colors border border-gold-400/30"
+                  >
+                    <Sparkles size={14} /> Ask AI
+                  </button>
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors border border-white/10"
+                  >
+                    <Download size={14} /> Export
+                  </button>
+                  <button
+                    onClick={() => { setIsAdding(true); setRawMessage(''); setParsedData(null); setParseError(''); }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gold-500 hover:bg-gold-600 text-forest-950 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all"
+                  >
+                    <Plus size={16} /> <span className="hidden sm:inline">Add Transaction</span><span className="sm:hidden">Add</span>
+                  </button>
+                </>
+              )}
+              {maximizedPage === 'budget' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('max-budget-form');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gold-500 hover:bg-gold-600 text-forest-950 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all"
+                  >
+                    <Plus size={15} /> <span className="hidden sm:inline">Add Budget</span><span className="sm:hidden">Budget</span>
+                  </button>
+                </div>
+              )}
+              {maximizedPage === 'statements' && (
+                <label className="cursor-pointer bg-gold-500 hover:bg-gold-600 text-forest-950 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md flex items-center gap-1.5">
+                  <Upload size={16} />
+                  <span className="hidden sm:inline">Upload PDF</span><span className="sm:hidden">Upload</span>
+                  <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
+                </label>
+              )}
+              <button
+                onClick={() => setMaximizedPage(null)}
+                className="p-2 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white rounded-xl transition-colors ml-1 border border-white/10"
+                title="Exit Maximized View"
+              >
+                <Minimize2 size={16} />
+              </button>
+            </div>
+          </header>
+
+          {/* Maximized Page Body - Fully Scrollable for Multiple Entries */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-6 lg:p-8">
+            <div className="max-w-6xl mx-auto w-full space-y-6">
+
+              {/* 1. MAXIMIZED TRANSACTIONS PAGE */}
+              {maximizedPage === 'transactions' && (
+                <div className="space-y-6 pb-12 animate-fadeIn">
+                  {/* Top Stats Banner */}
+                  <div className="bg-gradient-to-br from-forest-900 to-forest-800 rounded-3xl p-6 sm:p-8 shadow-xl text-white relative overflow-hidden flex flex-col md:flex-row justify-between md:items-end gap-6">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                      <Receipt size={140} />
+                    </div>
+                    <div className="relative z-10 flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-forest-200 text-xs sm:text-sm uppercase tracking-widest font-bold">Maximized Ledger</span>
+                        <span className="text-xs bg-gold-500/20 text-gold-300 border border-gold-400/30 px-2.5 py-0.5 rounded-full font-mono">
+                          {filteredExpenditures.length} of {expenditures.length} transactions
+                        </span>
+                      </div>
+                      <h3 className="text-4xl sm:text-6xl font-display font-light">
+                        <span className="text-forest-300 text-2xl sm:text-3xl pr-1">Ksh</span>
+                        <span className="font-bold">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </h3>
+                    </div>
+
+                    <div className="relative z-10 flex gap-4 sm:gap-8 border-t md:border-t-0 md:border-l border-forest-700/70 pt-4 md:pt-0 md:pl-8">
+                      <div className="bg-white/5 p-3 sm:p-4 rounded-2xl border border-white/5 min-w-[130px]">
+                        <p className="text-forest-300 text-xs uppercase tracking-wider font-bold mb-1">Total Inflow</p>
+                        <p className="text-xl sm:text-2xl font-bold text-emerald-400">+{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="bg-white/5 p-3 sm:p-4 rounded-2xl border border-white/5 min-w-[130px]">
+                        <p className="text-forest-300 text-xs uppercase tracking-wider font-bold mb-1">Total Outflow</p>
+                        <p className="text-xl sm:text-2xl font-bold text-rose-400">-{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter & Search Bar */}
+                  <div className="bg-white p-4 rounded-2xl border border-sand-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-forest-400" size={18} />
+                      <input 
+                        type="text" 
+                        placeholder="Search multiple entries by recipient, reference, or note..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-sand-50 border border-sand-200 rounded-xl pl-11 pr-12 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-gold-500/50 text-forest-900"
+                      />
+                      <button 
+                        onClick={toggleVoiceSearch}
+                        className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${isVoiceSearching ? 'bg-rose-100 text-rose-500 animate-pulse' : 'text-forest-400 hover:text-forest-600 hover:bg-sand-100'}`}
+                        title="Voice Search"
+                      >
+                        {isVoiceSearching ? <Mic size={18} /> : <MicOff size={18} />}
+                      </button>
+                    </div>
+
+                    {/* Filter Type Pills */}
+                    <div className="flex bg-sand-100 p-1 rounded-xl border border-sand-200 shrink-0">
+                      <button
+                        onClick={() => setTxnTypeFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${txnTypeFilter === 'all' ? 'bg-white text-forest-900 shadow-xs' : 'text-forest-500 hover:text-forest-800'}`}
+                      >
+                        All ({expenditures.length})
+                      </button>
+                      <button
+                        onClick={() => setTxnTypeFilter('expense')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${txnTypeFilter === 'expense' ? 'bg-white text-rose-600 shadow-xs' : 'text-forest-500 hover:text-forest-800'}`}
+                      >
+                        Expenses ({expenditures.filter(e => e.type !== 'income').length})
+                      </button>
+                      <button
+                        onClick={() => setTxnTypeFilter('income')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${txnTypeFilter === 'income' ? 'bg-white text-emerald-600 shadow-xs' : 'text-forest-500 hover:text-forest-800'}`}
+                      >
+                        Income ({expenditures.filter(e => e.type === 'income').length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scrollable Multiple Entries Container */}
+                  <div className="bg-white rounded-3xl border border-sand-200 shadow-sm p-4 sm:p-6 space-y-6">
+                    {groupedExpenditures.length === 0 ? (
+                      <div className="py-16 text-center text-forest-400">
+                        <Receipt size={64} className="mx-auto mb-4 opacity-30 text-forest-500" />
+                        <h4 className="font-bold text-forest-900 text-xl">No transactions found</h4>
+                        <p className="text-sm text-forest-500 mt-1 max-w-sm mx-auto">No records match your search or filter. Try a different query or add a new transaction.</p>
+                      </div>
+                    ) : (
+                      groupedExpenditures.map(group => (
+                        <div key={group.date} className="space-y-3">
+                          <div className="sticky top-0 bg-white/95 backdrop-blur-md py-2.5 z-10 flex items-center justify-between border-b border-sand-100">
+                            <h4 className="text-xs sm:text-sm font-bold text-forest-700 uppercase tracking-widest flex items-center gap-2">
+                              <Calendar size={14} className="text-forest-400" />
+                              {new Date(group.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </h4>
+                            <span className="text-xs font-mono font-semibold bg-sand-100 text-forest-600 px-2 py-0.5 rounded-full">
+                              {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
+                            </span>
+                          </div>
+
+                          <div className="divide-y divide-sand-100 border border-sand-100 rounded-2xl overflow-hidden shadow-2xs">
+                            {group.items.map(exp => (
+                              <div key={exp.id} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center hover:bg-sand-50/60 transition-colors group relative bg-white">
+                                <div className="flex-1 min-w-0 flex items-start gap-4 w-full">
+                                  <div className={`w-12 h-12 rounded-2xl flex shrink-0 items-center justify-center shadow-xs ${exp.type === 'income' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-500 border border-rose-100'}`}>
+                                    {exp.type === 'income' ? <Plus size={22} /> : <Receipt size={22} />}
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-0.5">
+                                    <div className="flex justify-between items-start gap-3 mb-1">
+                                      <h5 className="font-bold text-forest-900 text-base sm:text-lg truncate">{exp.recipient}</h5>
+                                      <div className={`font-display font-bold text-lg sm:text-xl whitespace-nowrap ${exp.type === 'income' ? 'text-emerald-600' : 'text-forest-900'}`}>
+                                        {exp.type === 'income' ? '+' : '-'} Ksh {exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-forest-500">
+                                      {exp.time && <span className="font-medium">{exp.time}</span>}
+                                      {exp.time && <span className="w-1 h-1 rounded-full bg-sand-300"></span>}
+                                      {exp.paymentMethod && <span className="uppercase tracking-wider font-bold bg-sand-100 text-forest-700 px-2 py-0.5 rounded text-[11px]">{exp.paymentMethod}</span>}
+                                      {exp.reference && (
+                                        <>
+                                          <span className="w-1 h-1 rounded-full bg-sand-300"></span>
+                                          <span className="font-mono font-semibold text-forest-700">{exp.reference}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    {exp.paymentFor && (
+                                      <p className="text-xs sm:text-sm text-forest-600 font-medium mt-2 bg-sand-50/70 p-2 rounded-xl inline-block">
+                                        Note: {exp.paymentFor}
+                                      </p>
+                                    )}
+                                    {exp.purchasedItems && exp.purchasedItems.length > 0 && (
+                                      <div className="mt-3 bg-sand-50 rounded-2xl p-3 sm:p-4 border border-sand-100">
+                                        <p className="text-xs font-bold text-forest-500 uppercase tracking-wider mb-2">Itemized Breakdown</p>
+                                        <ul className="space-y-1.5">
+                                          {exp.purchasedItems.map((item, idx) => (
+                                            <li key={idx} className="flex justify-between text-xs sm:text-sm text-forest-700">
+                                              <span className="truncate pr-4">{item.name}</span>
+                                              <span className="font-bold whitespace-nowrap text-forest-900">Ksh {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => confirmAndDeleteExpenditure(exp)} 
+                                  className="text-forest-300 hover:text-rose-500 transition-colors p-2 rounded-xl hover:bg-rose-50 self-end sm:self-center"
+                                  title="Delete entry"
+                                >
+                                  <Trash size={18} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. MAXIMIZED BUDGET PAGE */}
+              {maximizedPage === 'budget' && (
+                <div className="space-y-8 pb-12 animate-fadeIn">
+                  {/* Top KPI Metrics Banner */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-sand-200 shadow-sm">
+                      <p className="text-xs text-forest-500 font-bold uppercase tracking-wider mb-1">Total Budget Limit</p>
+                      <h4 className="text-xl sm:text-2xl font-bold text-forest-900">Ksh {totalBudgetAllocated.toLocaleString()}</h4>
+                      <p className="text-[11px] text-forest-400 mt-1">{budgets.length} active budget categories</p>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-sand-200 shadow-sm">
+                      <p className="text-xs text-forest-500 font-bold uppercase tracking-wider mb-1">Total Spent</p>
+                      <h4 className="text-xl sm:text-2xl font-bold text-rose-600">Ksh {totalBudgetSpent.toLocaleString()}</h4>
+                      <p className="text-[11px] text-forest-400 mt-1">Across all budget categories</p>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-sand-200 shadow-sm">
+                      <p className="text-xs text-forest-500 font-bold uppercase tracking-wider mb-1">Remaining Budget</p>
+                      <h4 className={`text-xl sm:text-2xl font-bold ${totalBudgetAllocated - totalBudgetSpent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        Ksh {Math.max(0, totalBudgetAllocated - totalBudgetSpent).toLocaleString()}
+                      </h4>
+                      <p className="text-[11px] text-forest-400 mt-1">{totalBudgetAllocated > 0 ? `${Math.round((totalBudgetSpent / totalBudgetAllocated) * 100)}% consumed` : 'No limit set'}</p>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-sand-200 shadow-sm">
+                      <p className="text-xs text-forest-500 font-bold uppercase tracking-wider mb-1">Monthly Recurring</p>
+                      <h4 className="text-xl sm:text-2xl font-bold text-forest-900">Ksh {totalMonthlyRecurring.toLocaleString(undefined, {maximumFractionDigits: 0})}</h4>
+                      <p className="text-[11px] text-forest-400 mt-1">{recurringExpenses.length} recurring commitments</p>
+                    </div>
+                  </div>
+
+                  {/* Budgets Section - Scrollable for Multiple Entries */}
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 border border-sand-200 shadow-sm space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-sand-100">
+                      <div>
+                        <h3 className="font-display font-bold text-xl sm:text-2xl text-forest-900 flex items-center gap-2.5">
+                          <PieChart size={24} className="text-gold-600" /> Category Budgets ({budgets.length})
+                        </h3>
+                        <p className="text-xs sm:text-sm text-forest-500 mt-0.5">Scroll through multiple budget allocations and tracking progress</p>
+                      </div>
+
+                      {/* Quick Add Budget Form */}
+                      <div id="max-budget-form" className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <input 
+                          type="text" 
+                          placeholder="Category (e.g. Dining, Travel)" 
+                          value={newBudget.category} 
+                          onChange={e => setNewBudget(p => ({...p, category: e.target.value}))} 
+                          className="bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" 
+                        />
+                        <div className="flex gap-2">
+                          <input 
+                            type="number" 
+                            placeholder="Amount (Ksh)" 
+                            value={newBudget.amount} 
+                            onChange={e => setNewBudget(p => ({...p, amount: e.target.value}))} 
+                            className="w-full sm:w-32 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" 
+                          />
+                          <button 
+                            disabled={!newBudget.category || !newBudget.amount}
+                            onClick={() => {
+                              onUpdateBudget?.({ id: crypto.randomUUID(), category: newBudget.category, amount: Number(newBudget.amount), createdAt: new Date().toISOString() });
+                              setNewBudget({category: '', amount: ''});
+                            }}
+                            className="bg-forest-900 text-white px-4 py-2 rounded-xl disabled:opacity-50 hover:bg-forest-800 transition-colors font-bold text-xs sm:text-sm flex items-center gap-1 shrink-0 shadow-md"
+                          >
+                            <Plus size={16}/> <span>Add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Multiple Budget Entries Grid */}
+                    {budgets.length === 0 ? (
+                      <div className="py-12 text-center text-forest-400 bg-sand-50/50 rounded-2xl border border-dashed border-sand-200">
+                        <PieChart size={40} className="mx-auto mb-2 opacity-30 text-forest-500" />
+                        <h4 className="font-bold text-forest-800 text-base">No budgets created yet</h4>
+                        <p className="text-xs text-forest-500 mt-0.5">Use the quick add bar above to create spending categories.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        {budgets.map(b => {
+                          const spent = expenditures.filter(exp => exp.recipient.toLowerCase().includes(b.category.toLowerCase())).reduce((s, exp) => s + exp.amount, 0);
+                          const percent = Math.min(100, Math.round((spent / (b.amount || 1)) * 100));
+                          return (
+                            <div key={b.id} className="group relative border border-sand-200 rounded-2xl p-5 bg-sand-50/40 hover:bg-white hover:border-gold-300 transition-all shadow-xs flex flex-col justify-between">
+                              <div>
+                                <div className="flex justify-between items-baseline mb-2">
+                                  <span className="font-bold text-forest-900 text-lg">{b.category}</span>
+                                  <div className="text-right">
+                                    <span className="text-base font-bold text-forest-900">Ksh {spent.toLocaleString()}</span>
+                                    <span className="text-xs text-forest-500"> / {b.amount.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                                <div className="h-4 w-full bg-sand-200 rounded-full overflow-hidden shadow-inner my-2">
+                                  <div className={`h-full rounded-full transition-all duration-500 ${percent >= 100 ? 'bg-red-500' : percent > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${percent}%` }}></div>
+                                </div>
+                                <div className="flex justify-between items-center mt-2 text-xs text-forest-600 font-medium">
+                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${percent >= 100 ? 'bg-red-100 text-red-700' : percent > 80 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    {percent}% Used
+                                  </span>
+                                  <span>{percent >= 100 ? 'Budget Exceeded' : `Ksh ${(b.amount - spent).toLocaleString()} left`}</span>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => confirmAndDeleteBudget(b)} 
+                                className="absolute top-4 right-4 p-2 text-forest-400 hover:text-red-500 rounded-xl hover:bg-red-50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                title="Delete budget"
+                              >
+                                <Trash size={16}/>
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recurring Expenses Section - Scrollable for Multiple Entries */}
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 border border-sand-200 shadow-sm space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-sand-100">
+                      <div>
+                        <h3 className="font-display font-bold text-xl sm:text-2xl text-forest-900 flex items-center gap-2.5">
+                          <Repeat size={24} className="text-gold-600" /> Recurring Expenses ({recurringExpenses.length})
+                        </h3>
+                        <p className="text-xs sm:text-sm text-forest-500 mt-0.5">Fixed obligations, subscriptions, and regular utility payments</p>
+                      </div>
+
+                      {/* Add Recurring Form */}
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <input 
+                          type="text" 
+                          placeholder="Name (e.g. WiFi, Rent)" 
+                          value={newRecurring.name} 
+                          onChange={e => setNewRecurring(p => ({...p, name: e.target.value}))} 
+                          className="bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" 
+                        />
+                        <div className="flex gap-2">
+                          <input 
+                            type="number" 
+                            placeholder="Amount (Ksh)" 
+                            value={newRecurring.amount} 
+                            onChange={e => setNewRecurring(p => ({...p, amount: e.target.value}))} 
+                            className="w-full sm:w-28 bg-sand-50 border border-sand-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-forest-900" 
+                          />
+                          <select 
+                            value={newRecurring.frequency} 
+                            onChange={e => setNewRecurring(p => ({...p, frequency: e.target.value as any}))} 
+                            className="bg-sand-50 border border-sand-200 rounded-xl px-2.5 py-2 text-sm text-forest-900 font-medium"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="daily">Daily</option>
+                            <option value="yearly">Yearly</option>
+                          </select>
+                          <button
+                            disabled={!newRecurring.name || !newRecurring.amount}
+                            onClick={() => {
+                              onAddRecurring?.({
+                                name: newRecurring.name,
+                                amount: Number(newRecurring.amount),
+                                frequency: newRecurring.frequency as any,
+                                nextDueDate: new Date().toISOString().split('T')[0],
+                                dayOfMonth: newRecurring.dayOfMonth ? Number(newRecurring.dayOfMonth) : undefined
+                              });
+                              setNewRecurring({name: '', amount: '', frequency: 'monthly', dayOfMonth: '5'});
+                            }}
+                            className="bg-forest-900 text-white px-4 py-2 rounded-xl disabled:opacity-50 hover:bg-forest-800 transition-colors text-xs sm:text-sm font-bold flex items-center gap-1 shrink-0 shadow-md"
+                          >
+                            <Plus size={16}/> <span>Save</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Multiple Recurring Entries List */}
+                    {recurringExpenses.length === 0 ? (
+                      <div className="py-12 text-center text-forest-400 bg-sand-50/50 rounded-2xl border border-dashed border-sand-200">
+                        <Repeat size={40} className="mx-auto mb-2 opacity-30 text-forest-500" />
+                        <h4 className="font-bold text-forest-800 text-base">No recurring expenses</h4>
+                        <p className="text-xs text-forest-500 mt-0.5">Add regular rent, subscriptions, or bills to track.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {recurringExpenses.map(r => (
+                          <div key={r.id} className="p-4 sm:p-5 border border-sand-200 rounded-2xl bg-sand-50/40 hover:bg-white transition-all shadow-xs flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                              <div className="w-12 h-12 rounded-2xl bg-forest-100 text-forest-800 flex items-center justify-center shrink-0 shadow-xs">
+                                <Repeat size={20} />
+                              </div>
+                              <div className="min-w-0">
+                                <h5 className="font-bold text-forest-900 text-base leading-tight truncate">{r.name}</h5>
+                                <p className="text-xs text-forest-500 font-medium mt-1 capitalize">
+                                  {r.frequency} {r.dayOfMonth ? `• Due on the ${r.dayOfMonth}${r.dayOfMonth === 1 ? 'st' : r.dayOfMonth === 2 ? 'nd' : r.dayOfMonth === 3 ? 'rd' : 'th'}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0 flex items-center gap-2.5">
+                              <div>
+                                <p className="font-bold text-forest-900 text-base sm:text-lg">Ksh {r.amount.toLocaleString()}</p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setAddMode('manual');
+                                  setParsedData({
+                                    date: new Date().toISOString().split('T')[0],
+                                    time: '',
+                                    recipient: r.name,
+                                    amount: r.amount,
+                                    paymentMethod: 'M-PESA / Bank',
+                                    reference: 'RECURRING-' + Math.floor(Math.random()*10000),
+                                    rawMessage: `Recurring payment for ${r.name}`,
+                                    paymentFor: r.name,
+                                    type: 'expense'
+                                  });
+                                  setRawMessage('');
+                                  setParseError('');
+                                  setIsAdding(true);
+                                }}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors shadow-sm"
+                                title="Open transaction details to pay"
+                              >
+                                Pay
+                              </button>
+                              <button 
+                                onClick={() => confirmAndDeleteRecurring(r)} 
+                                className="p-2 text-forest-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition-colors"
+                                title="Delete recurring expense"
+                              >
+                                <Trash size={16}/>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 3. MAXIMIZED STATEMENT PAGE */}
+              {maximizedPage === 'statements' && (
+                <div className="space-y-6 pb-12 animate-fadeIn">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 border border-sand-200 shadow-sm flex flex-col min-h-[82vh]">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-sand-100">
+                      <div>
+                        <h3 className="font-display font-bold text-xl sm:text-2xl text-forest-900 flex items-center gap-2.5">
+                          <FileText size={24} className="text-gold-600" /> PDF Statements & Reports
+                        </h3>
+                        <p className="text-xs sm:text-sm text-forest-500 mt-0.5">High-definition scrollable viewer for multi-page bank and M-PESA PDF statements</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <label className="cursor-pointer bg-forest-900 hover:bg-forest-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 w-full sm:w-auto">
+                          <Upload size={16} />
+                          <span>Upload PDF Statement</span>
+                          <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
+                        </label>
+                        {pdfUrl && (
+                          <>
+                            <button
+                              onClick={() => downloadFileHelper(pdfUrl, 'Bank_Statement.pdf', 'application/pdf')}
+                              className="px-3.5 py-2.5 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 border border-sand-300"
+                              title="Download Statement"
+                            >
+                              <Download size={15} />
+                              <span>Download</span>
+                            </button>
+                            <button
+                              onClick={() => setPdfUrl(null)}
+                              className="p-2.5 text-forest-400 hover:text-red-500 rounded-xl hover:bg-sand-100 transition-colors"
+                              title="Clear Statement"
+                            >
+                              <X size={18} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Maximized PDF Viewer Container */}
+                    <div className="flex-1 bg-sand-50 rounded-2xl border border-sand-200 overflow-hidden relative flex items-center justify-center min-h-[70vh] mt-4">
+                      {pdfUrl ? (
+                        <iframe src={pdfUrl} className="w-full h-full min-h-[72vh] border-none" title="Maximized PDF Viewer" />
+                      ) : (
+                        <div className="text-center text-forest-400 p-8 sm:p-12 max-w-md">
+                          <FileText size={64} className="mx-auto mb-4 opacity-40 text-forest-600" />
+                          <h4 className="font-bold text-forest-900 text-lg sm:text-xl">No PDF Statement Selected</h4>
+                          <p className="text-xs sm:text-sm mt-2 text-forest-500 leading-relaxed">
+                            Upload your multi-page bank statement or monthly M-PESA statement here. The maximized view lets you inspect all transactions, dates, and account figures clearly.
+                          </p>
+                          <label className="mt-6 inline-flex cursor-pointer bg-gold-500 hover:bg-gold-600 text-forest-900 px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-all gap-2 items-center">
+                            <Upload size={18} />
+                            <span>Select PDF File</span>
+                            <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Expense Modal */}
       {isAdding && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4">
            <div className="absolute inset-0 bg-forest-900/60 backdrop-blur-sm" onClick={() => setIsAdding(false)}></div>
            <div className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-xl relative z-10 animate-scaleIn flex flex-col max-h-full">
               <button 
@@ -1294,10 +1901,11 @@ const Expenditures: React.FC<ExpendituresProps> = ({
               </button>
               <button 
                 onClick={handleGenerateReport}
-                className="px-6 py-2.5 bg-forest-600 hover:bg-forest-700 text-white rounded-xl font-bold transition-colors flex items-center gap-2 shadow-sm shadow-forest-900/10"
+                disabled={isExporting}
+                className="px-6 py-2.5 bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white rounded-xl font-bold transition-colors flex items-center gap-2 shadow-sm shadow-forest-900/10 cursor-pointer disabled:cursor-not-allowed"
               >
-                <Download size={18} />
-                Generate
+                {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                <span>{isExporting ? 'Saving to Device...' : 'Generate & Download'}</span>
               </button>
             </div>
           </div>

@@ -28,6 +28,7 @@ import {
 import { SubscriptionPlan } from '../types';
 import { Capacitor } from '@capacitor/core';
 import GooglePayButton from '@google-pay/button-react';
+import { downloadFileHelper } from '../downloadFileHelper';
 
 interface MonetizationProps {
   currentPlan: SubscriptionPlan;
@@ -260,19 +261,12 @@ const Monetization: React.FC<MonetizationProps> = ({ currentPlan, onUpgrade }) =
     }, 2800);
   };
 
-  const triggerDownloadExe = () => {
+  const triggerDownloadExe = async () => {
     // Generate a downloadable setup installer stub
     const fileData = `Digital DocuFolio Windows Desktop Setup v2.4.0\nOfficial Offline Installer for Windows 10/11 (64-bit)\nBuild Date: 2026-08-26\nVerify SHA256: 8f4e2b7a9c1d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f\n\nInstructions:\n1. Run DigitalDocuFolio-Setup-v2.4.0-x64.exe\n2. Sign in with your registered account (${phoneNumber || 'your email'})\n3. Enjoy high-speed hardware scanning and offline document encryption.`;
     
     const blob = new Blob([fileData], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'DigitalDocuFolio-Setup-v2.4.0-x64.exe';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    await downloadFileHelper(blob, 'DigitalDocuFolio-Setup-v2.4.0-x64.exe', 'application/octet-stream');
   };
 
   const faqs = [

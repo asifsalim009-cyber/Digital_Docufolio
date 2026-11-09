@@ -1042,8 +1042,54 @@ const Wallet: React.FC<WalletProps> = ({
         matchesCategory = !isPersonal && !isBusiness;
       }
 
-      const matchesSearch = (doc.customName || doc.type).toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            doc.ownerName.toLowerCase().includes(searchTerm.toLowerCase());
+      const query = searchTerm.trim().toLowerCase();
+      let matchesSearch = true;
+      if (query) {
+        const docName = (doc.customName || '').toLowerCase();
+        const docType = (doc.type || '').toLowerCase();
+        const docCustomType = (doc.customType || '').toLowerCase();
+        const owner = (doc.ownerName || '').toLowerCase();
+        const docNumber = (doc.documentNumber || '').toLowerCase();
+        
+        // Expiry Date matching
+        const expiryDateStr = (doc.expiryDate || '').toLowerCase();
+        let formattedExpiry = '';
+        if (doc.expiryDate) {
+          try {
+            const d = new Date(doc.expiryDate);
+            if (!isNaN(d.getTime())) {
+              formattedExpiry = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase() + ' ' +
+                                d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }).toLowerCase();
+            }
+          } catch (_) {}
+        }
+
+        // Date Uploaded matching
+        const uploadDateStr = (doc.dateUploaded || '').toLowerCase();
+        let formattedUpload = '';
+        if (doc.dateUploaded) {
+          try {
+            const d = new Date(doc.dateUploaded);
+            if (!isNaN(d.getTime())) {
+              formattedUpload = d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase() + ' ' +
+                                d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }).toLowerCase();
+            }
+          } catch (_) {}
+        }
+
+        const fileNames = (doc.files || []).map(f => f.name.toLowerCase()).join(' ');
+
+        matchesSearch = docName.includes(query) ||
+                        docType.includes(query) ||
+                        docCustomType.includes(query) ||
+                        owner.includes(query) ||
+                        docNumber.includes(query) ||
+                        expiryDateStr.includes(query) ||
+                        formattedExpiry.includes(query) ||
+                        uploadDateStr.includes(query) ||
+                        formattedUpload.includes(query) ||
+                        fileNames.includes(query);
+      }
       const matchesType = selectedType === 'ALL' || doc.type === selectedType;
       
       return matchesCategory && matchesSearch && matchesType;
@@ -1249,6 +1295,44 @@ const Wallet: React.FC<WalletProps> = ({
                </div>
            </div>
        )}
+
+       {/* Top Search Bar to quickly find documents by name, type, or date */}
+       <div className="mb-4 bg-white/90 backdrop-blur-md rounded-2xl p-2.5 sm:p-3.5 border border-sand-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
+             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-forest-400" size={18} />
+             <input 
+               className="w-full bg-sand-50/80 border border-sand-200 rounded-xl py-2.5 pl-11 pr-24 text-sm sm:text-base text-forest-900 placeholder:text-forest-400 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:bg-white transition-all shadow-inner"
+               placeholder="Search documents by name, type, or date (e.g. Passport, National ID, 2026, Nov)..."
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
+             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+               {searchTerm && (
+                 <button 
+                   onClick={() => setSearchTerm('')}
+                   className="p-1 rounded-md text-forest-400 hover:text-forest-600 hover:bg-sand-200/60 transition-colors"
+                   title="Clear search"
+                 >
+                   <X size={16} />
+                 </button>
+               )}
+               <button 
+                 onClick={toggleVoiceSearch}
+                 className={`p-1.5 rounded-lg transition-all ${isVoiceSearching ? 'bg-rose-100 text-rose-500 animate-pulse' : 'text-forest-400 hover:text-forest-600 hover:bg-sand-200/60'}`}
+                 title="Voice Search"
+               >
+                 {isVoiceSearching ? <Mic size={16} /> : <MicOff size={16} />}
+               </button>
+             </div>
+          </div>
+          {searchTerm && (
+            <div className="text-xs font-semibold text-forest-600 bg-sand-100 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-1.5 border border-sand-200">
+              <span>Found {filteredDocs.length} document{filteredDocs.length === 1 ? '' : 's'}</span>
+              <button onClick={() => setSearchTerm('')} className="underline text-forest-800 hover:text-gold-600 ml-1">Clear</button>
+            </div>
+          )}
+       </div>
+
        {/* Compact Header Toolbar */}
        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 shrink-0 bg-white/50 p-3 rounded-xl border border-sand-200 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 w-full md:w-auto">

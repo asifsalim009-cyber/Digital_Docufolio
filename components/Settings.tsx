@@ -34,6 +34,7 @@ import TutorialGuide from './TutorialGuide';
 import { Capacitor } from '@capacitor/core';
 import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 import { checkAiBackendHealth, getApiBaseUrl } from '../api';
+import { downloadFileHelper } from '../downloadFileHelper';
 
 interface SettingsProps {
   isFullscreen?: boolean;
@@ -299,6 +300,25 @@ const Settings: React.FC<SettingsProps> = ({
     }
   };
 
+  const handleLocalBackup = async () => {
+    try {
+      const exportData = {
+        profile,
+        documents,
+        journalEntries,
+        tasks,
+        exportDate: new Date().toISOString()
+      };
+      const fileContent = JSON.stringify(exportData, null, 2);
+      const file = new Blob([fileContent], { type: 'application/json' });
+      const filename = `Digital_Docufolio_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      await downloadFileHelper(file, filename, 'application/json');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to export local backup');
+    }
+  };
+
   const getPlanBadge = (plan?: SubscriptionPlan) => {
     switch (plan) {
       case SubscriptionPlan.PREMIUM:
@@ -553,14 +573,24 @@ const Settings: React.FC<SettingsProps> = ({
                           </div>
                         )}
                       </div>
-                      <button 
-                        onClick={handleDriveBackup}
-                        disabled={isBackingUp}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-forest-900 hover:bg-forest-800 text-white rounded-xl font-bold transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm"
-                      >
-                        {isBackingUp ? <Loader2 size={16} className="animate-spin" /> : <Cloud size={16} />}
-                        {isBackingUp ? 'Backing Up...' : 'Save to Drive'}
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <button 
+                          onClick={handleLocalBackup}
+                          className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-sand-100 hover:bg-sand-200 text-forest-800 rounded-xl font-bold transition-colors text-sm border border-sand-300 shadow-xs whitespace-nowrap cursor-pointer"
+                          title="Download local backup directly to this device"
+                        >
+                          <Download size={15} />
+                          <span>Save to Device</span>
+                        </button>
+                        <button 
+                          onClick={handleDriveBackup}
+                          disabled={isBackingUp}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-forest-900 hover:bg-forest-800 text-white rounded-xl font-bold transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm"
+                        >
+                          {isBackingUp ? <Loader2 size={16} className="animate-spin" /> : <Cloud size={16} />}
+                          {isBackingUp ? 'Backing Up...' : 'Save to Drive'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
